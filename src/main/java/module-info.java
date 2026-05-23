@@ -2,9 +2,6 @@ module co.edu.upc.citasmedicas {
     // Requerimos los módulos del sistema de JavaFX
     requires javafx.controls;
     requires javafx.fxml;
-    
-    // Requerimos las librerías externas del POM
-    requires MaterialFX;
     requires java.sql;
 
     // ABRIR los paquetes de vistas y controladores a JavaFX para que FXML pueda inyectar componentes
