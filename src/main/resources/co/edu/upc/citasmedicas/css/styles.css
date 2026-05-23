@@ -1,0 +1,52 @@
+.login-container {
+    -fx-background-color: #f3f4f6;
+    -fx-padding: 30px;
+}
+.title-label {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1f2937;
+}
+.input-field {
+    -fx-pref-width: 250px;
+    -fx-padding: 8px;
+}
+.login-button {
+    -fx-background-color: #3b82f6;
+    -fx-text-fill: white;
+    -fx-padding: 10px 20px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 4px;
+}
+.login-button:hover {
+    -fx-background-color: #2563eb;
+}
+.sidebar {
+    -fx-background-color: #1f2937;
+    -fx-padding: 15px;
+    -fx-pref-width: 200px;
+}
+.sidebar-title {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 15 0;
+}
+.sidebar-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #d1d5db;
+    -fx-alignment: BASELINE_LEFT;
+    -fx-pref-width: 170px;
+}
+.sidebar-button:hover {
+    -fx-text-fill: white;
+    -fx-background-color: #374151;
+}
+.content-area {
+    -fx-background-color: #ffffff;
+    -fx-padding: 20px;
+}
+.welcome-label {
+    -fx-font-size: 20px;
+    -fx-text-fill: #111827;
+}
