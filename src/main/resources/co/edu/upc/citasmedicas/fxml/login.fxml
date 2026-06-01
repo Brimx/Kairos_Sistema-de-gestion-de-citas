@@ -5,12 +5,13 @@
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.Button?>
 
-<VBox alignment="CENTER" spacing="15.0" prefWidth="400.0" prefHeight="300.0" 
+<VBox alignment="CENTER" spacing="15.0" prefWidth="420.0" prefHeight="320.0"
       xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="co.edu.upc.citasmedicas.controller.LoginController"
       stylesheets="@../css/styles.css" styleClass="login-container">
-    <Label text="Iniciar Sesión" styleClass="title-label"/>
-    <TextField promptText="Email" styleClass="input-field"/>
-    <PasswordField promptText="Contraseña" styleClass="input-field"/>
+    <Label text="Iniciar Sesion" styleClass="title-label"/>
+    <TextField fx:id="emailField" promptText="Email" styleClass="input-field"/>
+    <PasswordField fx:id="passwordField" promptText="Contrasena" styleClass="input-field"/>
     <Button text="Ingresar" onAction="#handleLogin" styleClass="login-button"/>
+    <Label fx:id="errorLabel" wrapText="true" maxWidth="300.0" styleClass="helper-label"/>
 </VBox>

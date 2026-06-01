@@ -1,52 +1,102 @@
 .login-container {
-    -fx-background-color: #f3f4f6;
-    -fx-padding: 30px;
+    -fx-background-color: #f5f7fb;
+    -fx-padding: 32px;
 }
+
 .title-label {
     -fx-font-size: 24px;
     -fx-font-weight: bold;
     -fx-text-fill: #1f2937;
 }
+
 .input-field {
-    -fx-pref-width: 250px;
-    -fx-padding: 8px;
+    -fx-pref-width: 260px;
+    -fx-padding: 9px;
 }
+
 .login-button {
-    -fx-background-color: #3b82f6;
+    -fx-background-color: #2563eb;
     -fx-text-fill: white;
-    -fx-padding: 10px 20px;
+    -fx-padding: 10px 24px;
     -fx-font-weight: bold;
     -fx-background-radius: 4px;
 }
+
 .login-button:hover {
-    -fx-background-color: #2563eb;
+    -fx-background-color: #1d4ed8;
 }
+
+.helper-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #4b5563;
+    -fx-text-alignment: center;
+}
+
+.topbar {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d7dde8;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 14px 18px;
+}
+
+.topbar-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #111827;
+}
+
+.topbar-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #4b5563;
+}
+
+.secondary-button {
+    -fx-background-color: #eef2ff;
+    -fx-text-fill: #1e3a8a;
+    -fx-padding: 8px 12px;
+    -fx-background-radius: 4px;
+    -fx-border-color: #c7d2fe;
+    -fx-border-radius: 4px;
+}
+
+.secondary-button:hover {
+    -fx-background-color: #dbeafe;
+}
+
 .sidebar {
-    -fx-background-color: #1f2937;
-    -fx-padding: 15px;
-    -fx-pref-width: 200px;
+    -fx-background-color: #172033;
+    -fx-padding: 16px;
+    -fx-pref-width: 240px;
 }
+
 .sidebar-title {
     -fx-text-fill: white;
     -fx-font-size: 16px;
     -fx-font-weight: bold;
-    -fx-padding: 0 0 15 0;
+    -fx-padding: 0 0 8 0;
 }
-.sidebar-button {
+
+.menu-list {
     -fx-background-color: transparent;
-    -fx-text-fill: #d1d5db;
-    -fx-alignment: BASELINE_LEFT;
-    -fx-pref-width: 170px;
 }
-.sidebar-button:hover {
-    -fx-text-fill: white;
-    -fx-background-color: #374151;
-}
+
 .content-area {
-    -fx-background-color: #ffffff;
-    -fx-padding: 20px;
+    -fx-background-color: #f8fafc;
 }
-.welcome-label {
-    -fx-font-size: 20px;
+
+.section-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
     -fx-text-fill: #111827;
+}
+
+.list-view {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d7dde8;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+.list-cell {
+    -fx-padding: 9px;
 }
