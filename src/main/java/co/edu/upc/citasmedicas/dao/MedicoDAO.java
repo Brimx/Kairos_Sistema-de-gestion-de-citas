@@ -15,6 +15,45 @@ import java.util.List;
  */
 public class MedicoDAO {
 
+    public void guardar(Medico medico) {
+        String sqlUsuario = """
+                INSERT INTO usuarios (id, nombre, apellido, email, password, telefono, rol, activo)
+                VALUES (?, ?, ?, ?, ?, ?, 'MEDICO', 1)
+                """;
+
+        String sqlMedico = """
+                INSERT INTO medicos (usuario_id, registro_medico, especialidad, consultorio)
+                VALUES (?, ?, ?, ?)
+                """;
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement stmtUsuario = connection.prepareStatement(sqlUsuario);
+             PreparedStatement stmtMedico = connection.prepareStatement(sqlMedico)) {
+
+            connection.setAutoCommit(false);
+
+            // Guardar en tabla usuarios
+            stmtUsuario.setString(1, medico.getId());
+            stmtUsuario.setString(2, medico.getNombre());
+            stmtUsuario.setString(3, medico.getApellido());
+            stmtUsuario.setString(4, medico.getEmail());
+            stmtUsuario.setString(5, medico.getPassword());
+            stmtUsuario.setString(6, medico.getTelefono());
+            stmtUsuario.executeUpdate();
+
+            // Guardar en tabla medicos
+            stmtMedico.setString(1, medico.getId());
+            stmtMedico.setString(2, medico.getRegistroMedico());
+            stmtMedico.setString(3, medico.getEspecialidad().name());
+            stmtMedico.setString(4, medico.getConsultorio());
+            stmtMedico.executeUpdate();
+
+            connection.commit();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudo guardar el médico", exception);
+        }
+    }
+
     public List<Medico> obtenerTodos() {
         String sql = """
                 SELECT u.id, u.nombre, u.apellido, u.email, u.password, u.telefono,

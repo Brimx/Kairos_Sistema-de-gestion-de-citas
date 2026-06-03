@@ -58,4 +58,9 @@ public class LoginController {
         Session.setUsuarioActual(usuario);
         ViewManager.showView("/co/edu/upc/citasmedicas/fxml/dashboard.fxml", "Panel principal - Sistema EPS");
     }
+
+    @FXML
+    private void handleIrRegistro() throws IOException {
+        ViewManager.showView("/co/edu/upc/citasmedicas/fxml/registro.fxml", "Registro de Usuario - Sistema EPS");
+    }
 }

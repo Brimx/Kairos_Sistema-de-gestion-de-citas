@@ -2,6 +2,8 @@ package co.edu.upc.citasmedicas.model;
 
 import co.edu.upc.citasmedicas.enums.Rol;
 
+import java.util.UUID;
+
 /**
  * Clase base de todos los usuarios del sistema.
  * Es abstracta porque nunca se crea un "Usuario" genérico,
@@ -19,7 +21,7 @@ public abstract class Usuario {
     private Rol rol;
     private boolean activo;
 
-    // --- Constructor ---
+    // --- Constructor (usado por DAOs que generan el ID) ---
     public Usuario(String id, String nombre, String apellido,
                    String email, String password, String telefono, Rol rol) {
         this.id       = id;
@@ -30,6 +32,23 @@ public abstract class Usuario {
         this.telefono = telefono;
         this.rol      = rol;
         this.activo   = true; // Todo usuario arranca activo por defecto
+    }
+
+    // --- Constructor sin ID (genera ID automático) ---
+    public Usuario(String nombre, String apellido, String email, String password, String telefono, Rol rol) {
+        this.id = generarIdUnico();
+        this.nombre   = nombre;
+        this.apellido = apellido;
+        this.email    = email;
+        this.password = password;
+        this.telefono = telefono;
+        this.rol      = rol;
+        this.activo   = true;
+    }
+
+    // --- Método estático para generar IDs únicos ---
+    private static String generarIdUnico() {
+        return UUID.randomUUID().toString().substring(0, 8);
     }
 
     // --- Método abstracto ---
