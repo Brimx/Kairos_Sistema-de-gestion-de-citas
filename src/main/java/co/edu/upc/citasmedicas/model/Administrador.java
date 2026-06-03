@@ -26,12 +26,12 @@ public class Administrador extends Usuario {
     @Override
     public String[] getMenuOpciones() {
         return new String[]{
-            "1. Gestionar pacientes",
-            "2. Gestionar médicos",
-            "3. Ver todas las citas",
-            "4. Ver reportes",
-            "5. Registrar nuevo médico",
-            "6. Cerrar sesión"
+            "Gestionar pacientes",
+            "Gestionar medicos",
+            "Ver todas las citas",
+            "Ver reportes",
+            "Registrar nuevo medico",
+            "Cerrar sesion"
         };
     }
 

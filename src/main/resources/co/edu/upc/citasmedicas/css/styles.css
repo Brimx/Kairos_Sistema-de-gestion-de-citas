@@ -32,6 +32,16 @@
     -fx-text-alignment: center;
 }
 
+.success-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #047857;
+}
+
+.error-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #b91c1c;
+}
+
 .topbar {
     -fx-background-color: #ffffff;
     -fx-border-color: #d7dde8;

@@ -35,11 +35,11 @@ public class Medico extends Usuario {
     @Override
     public String[] getMenuOpciones() {
         return new String[]{
-            "1. Ver agenda del día",
-            "2. Ver siguiente paciente",
-            "3. Marcar asistencia",
-            "4. Ver historial de paciente",
-            "5. Cerrar sesión"
+            "Ver agenda del dia",
+            "Ver siguiente paciente",
+            "Marcar asistencia",
+            "Ver historial de paciente",
+            "Cerrar sesion"
         };
     }
 

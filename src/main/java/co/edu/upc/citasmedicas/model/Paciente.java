@@ -37,12 +37,12 @@ public class Paciente extends Usuario {
     @Override
     public String[] getMenuOpciones() {
         return new String[]{
-            "1. Solicitar cita",
-            "2. Ver mis citas",
-            "3. Cancelar cita",
-            "4. Ver mi historial",
-            "5. Actualizar mis datos",
-            "6. Cerrar sesión"
+            "Solicitar cita",
+            "Ver mis citas",
+            "Cancelar cita",
+            "Ver mi historial",
+            "Actualizar mis datos",
+            "Cerrar sesion"
         };
     }
 

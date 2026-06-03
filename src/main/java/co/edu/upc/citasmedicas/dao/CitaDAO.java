@@ -22,7 +22,72 @@ import java.util.List;
 public class CitaDAO {
 
     public void guardar(Cita cita) {
-        throw new UnsupportedOperationException("Guardar citas desde SQLite aun no esta implementado");
+        String sql = """
+                INSERT INTO citas
+                (id, paciente_id, medico_id, especialidad, fecha, hora_inicio, estado, tipo, motivo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """;
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, cita.getId());
+            statement.setString(2, cita.getPaciente().getId());
+            statement.setString(3, cita.getMedico().getId());
+            statement.setString(4, cita.getEspecialidad().name());
+            statement.setString(5, cita.getFecha().toString());
+            statement.setString(6, cita.getHoraInicio().toString());
+            statement.setString(7, cita.getEstado().name());
+            statement.setString(8, cita.getTipo().name());
+            statement.setString(9, cita.getMotivo());
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudo guardar la cita", exception);
+        }
+    }
+
+    public void actualizarEstado(String citaId, EstadoCita estado) {
+        String sql = "UPDATE citas SET estado = ? WHERE id = ?";
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, estado.name());
+            statement.setString(2, citaId);
+
+            int filas = statement.executeUpdate();
+            if (filas == 0) {
+                throw new IllegalArgumentException("No existe una cita con el id indicado");
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudo actualizar el estado de la cita", exception);
+        }
+    }
+
+    public boolean existeCitaActivaParaMedico(String medicoId, LocalDate fecha, LocalTime horaInicio) {
+        String sql = """
+                SELECT COUNT(*) AS total
+                FROM citas
+                WHERE medico_id = ?
+                  AND fecha = ?
+                  AND hora_inicio = ?
+                  AND estado <> ?
+                """;
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, medicoId);
+            statement.setString(2, fecha.toString());
+            statement.setString(3, horaInicio.toString());
+            statement.setString(4, EstadoCita.CANCELADA.name());
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() && resultSet.getInt("total") > 0;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudo validar la disponibilidad del medico", exception);
+        }
     }
 
     public Cita buscarPorId(String id) {
@@ -46,15 +111,15 @@ public class CitaDAO {
     }
 
     public List<Cita> obtenerTodas() {
-        return obtenerPorFiltro(consultaBase() + " ORDER BY c.fecha, c.hora_inicio", null);
+        return obtenerPorFiltro(consultaBase() + " ORDER BY c.fecha DESC, c.hora_inicio DESC", null);
     }
 
     public List<Cita> obtenerPorPaciente(String pacienteId) {
-        return obtenerPorFiltro(consultaBase() + " WHERE c.paciente_id = ? ORDER BY c.fecha, c.hora_inicio", pacienteId);
+        return obtenerPorFiltro(consultaBase() + " WHERE c.paciente_id = ? ORDER BY c.fecha DESC, c.hora_inicio DESC", pacienteId);
     }
 
     public List<Cita> obtenerPorMedico(String medicoId) {
-        return obtenerPorFiltro(consultaBase() + " WHERE c.medico_id = ? ORDER BY c.fecha, c.hora_inicio", medicoId);
+        return obtenerPorFiltro(consultaBase() + " WHERE c.medico_id = ? ORDER BY c.fecha DESC, c.hora_inicio DESC", medicoId);
     }
 
     private List<Cita> obtenerPorFiltro(String sql, String filtro) {
