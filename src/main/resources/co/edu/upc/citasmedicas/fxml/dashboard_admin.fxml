@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="co.edu.upc.citasmedicas.controller.DashboardAdminController"
+            style="-fx-background-color: #f4f6fa;" prefWidth="960" prefHeight="680">
+
+    <top>
+        <HBox style="-fx-background-color: #1a73e8;" alignment="CENTER_LEFT" spacing="12">
+            <padding><Insets top="14" right="20" bottom="14" left="20"/></padding>
+            <Label fx:id="lblBienvenida"
+                   style="-fx-text-fill: white; -fx-font-size: 15; -fx-font-weight: bold;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label text="ADMINISTRADOR"
+                   style="-fx-text-fill: rgba(255,255,255,0.8); -fx-font-size: 12;"/>
+            <Button text="Cerrar Sesion" onAction="#handleCerrarSesion"
+                    style="-fx-background-color: white; -fx-text-fill: #1a73e8;
+                           -fx-font-weight: bold; -fx-background-radius: 6;"/>
+        </HBox>
+    </top>
+
+    <center>
+        <TabPane tabClosingPolicy="UNAVAILABLE">
+
+            <Tab text="Pacientes">
+                <VBox spacing="12">
+                    <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+                    <Label text="Gestion de Pacientes"
+                           style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+
+                    <TableView fx:id="tablaPacientes" VBox.vgrow="ALWAYS" prefHeight="300">
+                        <columns>
+                            <TableColumn fx:id="colPacNombre" text="Nombre"   prefWidth="200"/>
+                            <TableColumn fx:id="colPacEmail"  text="Email"    prefWidth="220"/>
+                            <TableColumn fx:id="colPacDoc"    text="Documento" prefWidth="130"/>
+                            <TableColumn fx:id="colPacTel"    text="Telefono" prefWidth="130"/>
+                        </columns>
+                    </TableView>
+
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <TextField fx:id="txtEditNombre" promptText="Nombre" prefWidth="200"
+                                   style="-fx-pref-height: 34;"/>
+                        <TextField fx:id="txtEditTel"    promptText="Telefono" prefWidth="150"
+                                   style="-fx-pref-height: 34;"/>
+                        <Button text="Guardar cambios" onAction="#handleGuardarPaciente"
+                                style="-fx-background-color: #1a73e8; -fx-text-fill: white;
+                                       -fx-background-radius: 6; -fx-pref-height: 34;"/>
+                        <Button text="Desactivar paciente" onAction="#handleDesactivarPaciente"
+                                style="-fx-background-color: #e53935; -fx-text-fill: white;
+                                       -fx-background-radius: 6; -fx-pref-height: 34;"/>
+                    </HBox>
+                    <Label fx:id="lblMensaje" text=""
+                           style="-fx-text-fill: #2e7d32; -fx-font-size: 12;"/>
+                </VBox>
+            </Tab>
+
+            <Tab text="Medicos">
+                <VBox spacing="12">
+                    <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <Label text="Medicos registrados"
+                               style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button text="+ Registrar nuevo medico"
+                                onAction="#irARegistroMedico"
+                                style="-fx-background-color: #1a73e8; -fx-text-fill: white;
+                                       -fx-background-radius: 6;"/>
+                    </HBox>
+                    <TableView fx:id="tablaMedicos" VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="colMedNombre" text="Nombre"       prefWidth="220"/>
+                            <TableColumn fx:id="colMedEmail"  text="Email"        prefWidth="230"/>
+                            <TableColumn fx:id="colMedEsp"    text="Especialidad" prefWidth="200"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+            </Tab>
+
+            <Tab text="Todas las citas">
+                <VBox spacing="12">
+                    <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+                    <Label text="Citas del sistema"
+                           style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+                    <TableView fx:id="tablaCitas" VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="colCitaPac"   text="Paciente"  prefWidth="170"/>
+                            <TableColumn fx:id="colCitaMed"   text="Medico"    prefWidth="170"/>
+                            <TableColumn fx:id="colCitaFecha" text="Fecha"     prefWidth="110"/>
+                            <TableColumn fx:id="colCitaHora"  text="Hora"      prefWidth="80"/>
+                            <TableColumn fx:id="colCitaEstado" text="Estado"   prefWidth="110"/>
+                        </columns>
+                    </TableView>
+                    <HBox spacing="10">
+                        <Button text="Confirmar cita" onAction="#handleConfirmarCita"
+                                style="-fx-background-color: #2e7d32; -fx-text-fill: white;
+                                       -fx-background-radius: 6;"/>
+                        <Button text="Cancelar cita" onAction="#handleCancelarCita"
+                                style="-fx-background-color: #e53935; -fx-text-fill: white;
+                                       -fx-background-radius: 6;"/>
+                    </HBox>
+                </VBox>
+            </Tab>
+
+        </TabPane>
+    </center>
+</BorderPane>

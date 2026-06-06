@@ -1,0 +1,8 @@
+target/
+.idea/
+*.class
+.settings/
+.classpath
+.project
+.github/
+citasmedicas.db
