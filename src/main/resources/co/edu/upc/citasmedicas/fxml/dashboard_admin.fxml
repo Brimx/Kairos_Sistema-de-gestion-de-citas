@@ -5,30 +5,25 @@
 
 <BorderPane xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="co.edu.upc.citasmedicas.controller.DashboardAdminController"
-            style="-fx-background-color: #f4f6fa;" prefWidth="960" prefHeight="680">
+            styleClass="bg-default" prefWidth="960" prefHeight="680">
 
     <top>
-        <HBox style="-fx-background-color: #1a73e8;" alignment="CENTER_LEFT" spacing="12">
+        <HBox styleClass="header-bar">
             <padding><Insets top="14" right="20" bottom="14" left="20"/></padding>
-            <Label fx:id="lblBienvenida"
-                   style="-fx-text-fill: white; -fx-font-size: 15; -fx-font-weight: bold;"/>
+            <Label fx:id="lblBienvenida" styleClass="header-title"/>
             <Region HBox.hgrow="ALWAYS"/>
-            <Label text="ADMINISTRADOR"
-                   style="-fx-text-fill: rgba(255,255,255,0.8); -fx-font-size: 12;"/>
-            <Button text="Cerrar Sesion" onAction="#handleCerrarSesion"
-                    style="-fx-background-color: white; -fx-text-fill: #1a73e8;
-                           -fx-font-weight: bold; -fx-background-radius: 6;"/>
+            <Label text="ADMINISTRADOR" styleClass="header-role"/>
+            <Button text="Cerrar Sesion" onAction="#handleCerrarSesion" styleClass="btn-logout"/>
         </HBox>
     </top>
 
     <center>
-        <TabPane tabClosingPolicy="UNAVAILABLE">
+        <TabPane tabClosingPolicy="UNAVAILABLE" styleClass="panel-padding">
 
             <Tab text="Pacientes">
                 <VBox spacing="12">
                     <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
-                    <Label text="Gestion de Pacientes"
-                           style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+                    <Label text="Gestion de Pacientes" styleClass="section-title"/>
 
                     <TableView fx:id="tablaPacientes" VBox.vgrow="ALWAYS" prefHeight="300">
                         <columns>
@@ -40,19 +35,12 @@
                     </TableView>
 
                     <HBox spacing="10" alignment="CENTER_LEFT">
-                        <TextField fx:id="txtEditNombre" promptText="Nombre" prefWidth="200"
-                                   style="-fx-pref-height: 34;"/>
-                        <TextField fx:id="txtEditTel"    promptText="Telefono" prefWidth="150"
-                                   style="-fx-pref-height: 34;"/>
-                        <Button text="Guardar cambios" onAction="#handleGuardarPaciente"
-                                style="-fx-background-color: #1a73e8; -fx-text-fill: white;
-                                       -fx-background-radius: 6; -fx-pref-height: 34;"/>
-                        <Button text="Desactivar paciente" onAction="#handleDesactivarPaciente"
-                                style="-fx-background-color: #e53935; -fx-text-fill: white;
-                                       -fx-background-radius: 6; -fx-pref-height: 34;"/>
+                        <TextField fx:id="txtEditNombre" promptText="Nombre" prefWidth="200" styleClass="input-small"/>
+                        <TextField fx:id="txtEditTel"    promptText="Telefono" prefWidth="150" styleClass="input-small"/>
+                        <Button text="Guardar cambios" onAction="#handleGuardarPaciente" styleClass="btn-primary" prefHeight="34"/>
+                        <Button text="Desactivar paciente" onAction="#handleDesactivarPaciente" styleClass="btn-danger" prefHeight="34"/>
                     </HBox>
-                    <Label fx:id="lblMensaje" text=""
-                           style="-fx-text-fill: #2e7d32; -fx-font-size: 12;"/>
+                    <Label fx:id="lblMensaje" text="" styleClass="feedback-ok"/>
                 </VBox>
             </Tab>
 
@@ -60,13 +48,10 @@
                 <VBox spacing="12">
                     <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
                     <HBox spacing="12" alignment="CENTER_LEFT">
-                        <Label text="Medicos registrados"
-                               style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+                        <Label text="Medicos registrados" styleClass="section-title"/>
                         <Region HBox.hgrow="ALWAYS"/>
                         <Button text="+ Registrar nuevo medico"
-                                onAction="#irARegistroMedico"
-                                style="-fx-background-color: #1a73e8; -fx-text-fill: white;
-                                       -fx-background-radius: 6;"/>
+                                onAction="#irARegistroMedico" styleClass="btn-primary"/>
                     </HBox>
                     <TableView fx:id="tablaMedicos" VBox.vgrow="ALWAYS">
                         <columns>
@@ -81,8 +66,7 @@
             <Tab text="Todas las citas">
                 <VBox spacing="12">
                     <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
-                    <Label text="Citas del sistema"
-                           style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+                    <Label text="Citas del sistema" styleClass="section-title"/>
                     <TableView fx:id="tablaCitas" VBox.vgrow="ALWAYS">
                         <columns>
                             <TableColumn fx:id="colCitaPac"   text="Paciente"  prefWidth="170"/>
@@ -93,12 +77,8 @@
                         </columns>
                     </TableView>
                     <HBox spacing="10">
-                        <Button text="Confirmar cita" onAction="#handleConfirmarCita"
-                                style="-fx-background-color: #2e7d32; -fx-text-fill: white;
-                                       -fx-background-radius: 6;"/>
-                        <Button text="Cancelar cita" onAction="#handleCancelarCita"
-                                style="-fx-background-color: #e53935; -fx-text-fill: white;
-                                       -fx-background-radius: 6;"/>
+                        <Button text="Confirmar cita" onAction="#handleConfirmarCita" styleClass="btn-success"/>
+                        <Button text="Cancelar cita" onAction="#handleCancelarCita" styleClass="btn-danger"/>
                     </HBox>
                 </VBox>
             </Tab>

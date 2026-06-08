@@ -4,6 +4,7 @@ module co.edu.upc.citasmedicas {
     requires javafx.fxml;
     requires transitive java.sql;
     requires java.naming;
+    requires com.calendarfx.view;
     requires org.xerial.sqlitejdbc;
 
     // ABRIR los paquetes de vistas y controladores a JavaFX para que FXML pueda inyectar componentes
