@@ -12,6 +12,7 @@ import co.edu.upc.citasmedicas.service.Session;
 import co.edu.upc.citasmedicas.service.ValidacionService;
 import co.edu.upc.citasmedicas.view.ViewManager;
 import javafx.fxml.FXML;
+import javafx.collections.FXCollections;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 
@@ -66,6 +67,7 @@ public class RegistroController {
     public void initialize() {
         errorLabel.setText("");
         successLabel.setText("");
+        rolComboBox.setItems(FXCollections.observableArrayList("PACIENTE", "MEDICO", "ADMINISTRADOR"));
 
         emailField.focusedProperty().addListener((obs, viejo, nuevo) -> {
             if (!nuevo) {
