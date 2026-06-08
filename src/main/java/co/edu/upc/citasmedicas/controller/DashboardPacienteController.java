@@ -89,13 +89,14 @@ public class DashboardPacienteController {
         cargarMisCitas();
     }
 
+    @SuppressWarnings("unchecked")
     private void inicializarCalendario() {
         calendarView = new CalendarView();
 
-        Calendar pendientes = new Calendar("Pendientes");
-        Calendar confirmadas = new Calendar("Confirmadas");
-        Calendar completadas = new Calendar("Completadas");
-        Calendar canceladas = new Calendar("Canceladas");
+        Calendar<?> pendientes = new Calendar<>("Pendientes");
+        Calendar<?> confirmadas = new Calendar<>("Confirmadas");
+        Calendar<?> completadas = new Calendar<>("Completadas");
+        Calendar<?> canceladas = new Calendar<>("Canceladas");
 
         pendientes.setStyle(Style.STYLE1);
         confirmadas.setStyle(Style.STYLE2);
@@ -128,14 +129,15 @@ public class DashboardPacienteController {
         calendarContainer.getChildren().add(calendarView);
     }
 
+    @SuppressWarnings("unchecked")
     private void cargarCalendario() {
         CalendarSource source = calendarView.getCalendarSources().get(0);
         source.getCalendars().forEach(cal -> cal.clear());
 
-        Calendar pendientes = source.getCalendars().get(0);
-        Calendar confirmadas = source.getCalendars().get(1);
-        Calendar completadas = source.getCalendars().get(2);
-        Calendar canceladas = source.getCalendars().get(3);
+        Calendar<?> pendientes = source.getCalendars().get(0);
+        Calendar<?> confirmadas = source.getCalendars().get(1);
+        Calendar<?> completadas = source.getCalendars().get(2);
+        Calendar<?> canceladas = source.getCalendars().get(3);
 
         try {
             Paciente paciente = (Paciente) Session.getUsuarioActual();
@@ -148,7 +150,7 @@ public class DashboardPacienteController {
         }
     }
 
-    private void agregarEntryCalendario(Cita c, Calendar pend, Calendar conf, Calendar comp, Calendar canc) {
+    private void agregarEntryCalendario(Cita c, Calendar<?> pend, Calendar<?> conf, Calendar<?> comp, Calendar<?> canc) {
         String title = "Dr. " + c.getMedico().getNombre() + " " + c.getMedico().getApellido()
                 + " - " + c.getMotivo();
         Entry<String> entry = new Entry<>(title);
@@ -156,7 +158,7 @@ public class DashboardPacienteController {
         ZonedDateTime fin = ZonedDateTime.of(c.getFecha(), c.getHoraFin(), ZoneId.systemDefault());
         entry.setInterval(inicio, fin);
 
-        Calendar target = switch (c.getEstado()) {
+        Calendar<?> target = switch (c.getEstado()) {
             case CONFIRMADA -> conf;
             case COMPLETADA -> comp;
             case CANCELADA -> canc;
