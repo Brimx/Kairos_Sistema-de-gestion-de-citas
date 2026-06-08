@@ -89,7 +89,6 @@ public class DashboardPacienteController {
         cargarMisCitas();
     }
 
-    @SuppressWarnings("unchecked")
     private void inicializarCalendario() {
         calendarView = new CalendarView();
 
@@ -129,7 +128,6 @@ public class DashboardPacienteController {
         calendarContainer.getChildren().add(calendarView);
     }
 
-    @SuppressWarnings("unchecked")
     private void cargarCalendario() {
         CalendarSource source = calendarView.getCalendarSources().get(0);
         source.getCalendars().forEach(cal -> cal.clear());

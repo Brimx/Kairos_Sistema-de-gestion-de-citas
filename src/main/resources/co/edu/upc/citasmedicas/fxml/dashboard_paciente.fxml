@@ -5,7 +5,8 @@
 
 <BorderPane xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="co.edu.upc.citasmedicas.controller.DashboardPacienteController"
-            styleClass="bg-default" prefWidth="960" prefHeight="680">
+            styleClass="bg-default" prefWidth="960" prefHeight="680"
+            stylesheets="@../css/styles.css">
 
     <top>
         <HBox styleClass="header-bar">
