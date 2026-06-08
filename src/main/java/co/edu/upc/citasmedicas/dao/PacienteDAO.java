@@ -71,6 +71,45 @@ public class PacienteDAO {
         return pacientes;
     }
 
+    public void actualizarDatosBasicos(String id, String nombre, String apellido, String telefono) {
+        String sql = """
+                UPDATE usuarios
+                SET nombre = ?, apellido = ?, telefono = ?
+                WHERE id = ? AND rol = 'PACIENTE' AND activo = 1
+                """;
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, nombre);
+            statement.setString(2, apellido);
+            statement.setString(3, telefono);
+            statement.setString(4, id);
+
+            if (statement.executeUpdate() == 0) {
+                throw new IllegalArgumentException("No se encontro un paciente activo con ese id");
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudo actualizar el paciente", exception);
+        }
+    }
+
+    public void desactivar(String id) {
+        String sql = "UPDATE usuarios SET activo = 0 WHERE id = ? AND rol = 'PACIENTE'";
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, id);
+
+            if (statement.executeUpdate() == 0) {
+                throw new IllegalArgumentException("No se encontro un paciente con ese id");
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudo desactivar el paciente", exception);
+        }
+    }
+
     private Paciente mapearPaciente(ResultSet resultSet) throws SQLException {
         return new Paciente(
                 resultSet.getString("id"),

@@ -111,7 +111,7 @@ public class CitaDAO {
     }
 
     public List<Cita> obtenerTodas() {
-        return obtenerPorFiltro(consultaBase() + " ORDER BY c.fecha DESC, c.hora_inicio DESC", null);
+        return obtenerPorFiltro(consultaBase() + " ORDER BY c.fecha DESC, c.hora_inicio DESC", (PreparedStatementBinder) null);
     }
 
     public List<Cita> obtenerPorPaciente(String pacienteId) {
@@ -119,17 +119,51 @@ public class CitaDAO {
     }
 
     public List<Cita> obtenerPorMedico(String medicoId) {
-        return obtenerPorFiltro(consultaBase() + " WHERE c.medico_id = ? ORDER BY c.fecha DESC, c.hora_inicio DESC", medicoId);
+        return obtenerPorFiltro(consultaBase() + " WHERE c.medico_id = ? ORDER BY c.fecha DESC, c.hora_inicio DESC", filtroId -> {
+            filtroId.setString(1, medicoId);
+        });
     }
 
-    private List<Cita> obtenerPorFiltro(String sql, String filtro) {
+    public List<Cita> obtenerPorPacienteActivas(String pacienteId) {
+        String sql = consultaBase() + """
+                 WHERE c.paciente_id = ? AND c.estado <> ?
+                 ORDER BY c.fecha DESC, c.hora_inicio DESC
+                """;
+        return obtenerPorFiltro(sql, statement -> {
+            statement.setString(1, pacienteId);
+            statement.setString(2, EstadoCita.CANCELADA.name());
+        });
+    }
+
+    public List<Cita> obtenerAgendaMedico(String medicoId) {
+        String sql = consultaBase() + """
+                 WHERE c.medico_id = ? AND c.estado IN (?, ?)
+                 ORDER BY c.fecha, c.hora_inicio
+                """;
+        return obtenerPorFiltro(sql, statement -> {
+            statement.setString(1, medicoId);
+            statement.setString(2, EstadoCita.PENDIENTE.name());
+            statement.setString(3, EstadoCita.CONFIRMADA.name());
+        });
+    }
+
+    private List<Cita> obtenerPorFiltro(String sql, String filtroId) {
+        return obtenerPorFiltro(sql, statement -> statement.setString(1, filtroId));
+    }
+
+    @FunctionalInterface
+    private interface PreparedStatementBinder {
+        void bind(PreparedStatement statement) throws SQLException;
+    }
+
+    private List<Cita> obtenerPorFiltro(String sql, PreparedStatementBinder binder) {
         List<Cita> citas = new ArrayList<>();
 
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
-            if (filtro != null) {
-                statement.setString(1, filtro);
+            if (binder != null) {
+                binder.bind(statement);
             }
 
             try (ResultSet resultSet = statement.executeQuery()) {

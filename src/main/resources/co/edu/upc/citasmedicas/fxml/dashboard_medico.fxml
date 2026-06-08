@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="co.edu.upc.citasmedicas.controller.DashboardMedicoController"
+            style="-fx-background-color: #f4f6fa;" prefWidth="860" prefHeight="580">
+
+    <top>
+        <HBox style="-fx-background-color: #1a73e8;" alignment="CENTER_LEFT" spacing="12">
+            <padding><Insets top="14" right="20" bottom="14" left="20"/></padding>
+            <VBox>
+                <Label fx:id="lblBienvenida"
+                       style="-fx-text-fill: white; -fx-font-size: 15; -fx-font-weight: bold;"/>
+                <Label fx:id="lblEspecialidad"
+                       style="-fx-text-fill: rgba(255,255,255,0.8); -fx-font-size: 12;"/>
+            </VBox>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="Actualizar" onAction="#handleActualizar"
+                    style="-fx-background-color: rgba(255,255,255,0.2);
+                           -fx-text-fill: white; -fx-background-radius: 6;"/>
+            <Button text="Cerrar Sesion" onAction="#handleCerrarSesion"
+                    style="-fx-background-color: white; -fx-text-fill: #1a73e8;
+                           -fx-font-weight: bold; -fx-background-radius: 6;"/>
+        </HBox>
+    </top>
+
+    <center>
+        <VBox spacing="12">
+            <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+            <Label text="Agenda del dia"
+                   style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+
+            <TableView fx:id="tablaAgenda" VBox.vgrow="ALWAYS">
+                <columns>
+                    <TableColumn fx:id="colPaciente" text="Paciente"   prefWidth="200"/>
+                    <TableColumn fx:id="colFecha"    text="Fecha"      prefWidth="110"/>
+                    <TableColumn fx:id="colHora"     text="Hora"       prefWidth="80"/>
+                    <TableColumn fx:id="colTipo"     text="Tipo"       prefWidth="100"/>
+                    <TableColumn fx:id="colEstado"   text="Estado"     prefWidth="110"/>
+                </columns>
+            </TableView>
+
+            <HBox spacing="10">
+                <Button text="Marcar como atendido" onAction="#handleAtender"
+                        style="-fx-background-color: #2e7d32; -fx-text-fill: white;
+                               -fx-background-radius: 6; -fx-pref-height: 36;"/>
+            </HBox>
+            <Label fx:id="lblMensaje" text=""
+                   style="-fx-text-fill: #2e7d32; -fx-font-size: 12;"/>
+        </VBox>
+    </center>
+</BorderPane>

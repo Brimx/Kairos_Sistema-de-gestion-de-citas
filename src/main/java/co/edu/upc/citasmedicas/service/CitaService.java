@@ -4,6 +4,8 @@ import co.edu.upc.citasmedicas.dao.CitaDAO;
 import co.edu.upc.citasmedicas.enums.EstadoCita;
 import co.edu.upc.citasmedicas.model.Cita;
 
+import java.util.List;
+
 /**
  * Capa de servicios y logica de negocio para la gestion de citas.
  */
@@ -45,6 +47,32 @@ public class CitaService {
             throw new IllegalArgumentException("Solo se pueden completar citas confirmadas");
         }
         citaDAO.actualizarEstado(citaId, EstadoCita.COMPLETADA);
+    }
+
+    public void atenderCita(String citaId) {
+        Cita cita = obtenerCitaExistente(citaId);
+        if (cita.getEstado() == EstadoCita.PENDIENTE) {
+            confirmarCita(citaId);
+        }
+        completarCita(citaId);
+    }
+
+    public List<Cita> citasDelPaciente(String pacienteId) {
+        if (pacienteId == null || pacienteId.isBlank()) {
+            throw new IllegalArgumentException("Paciente invalido");
+        }
+        return citaDAO.obtenerPorPacienteActivas(pacienteId);
+    }
+
+    public List<Cita> agendaDelMedico(String medicoId) {
+        if (medicoId == null || medicoId.isBlank()) {
+            throw new IllegalArgumentException("Medico invalido");
+        }
+        return citaDAO.obtenerAgendaMedico(medicoId);
+    }
+
+    public List<Cita> todasLasCitas() {
+        return citaDAO.obtenerTodas();
     }
 
     private Cita obtenerCitaExistente(String citaId) {

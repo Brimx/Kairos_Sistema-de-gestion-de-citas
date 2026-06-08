@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="co.edu.upc.citasmedicas.controller.DashboardPacienteController"
+            style="-fx-background-color: #f4f6fa;" prefWidth="920" prefHeight="650">
+
+    <top>
+        <HBox style="-fx-background-color: #1a73e8;" alignment="CENTER_LEFT" spacing="12">
+            <padding><Insets top="14" right="20" bottom="14" left="20"/></padding>
+            <Label fx:id="lblBienvenida"
+                   style="-fx-text-fill: white; -fx-font-size: 15; -fx-font-weight: bold;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label text="PACIENTE"
+                   style="-fx-text-fill: rgba(255,255,255,0.8); -fx-font-size: 12;"/>
+            <Button text="Cerrar Sesion" onAction="#handleCerrarSesion"
+                    style="-fx-background-color: white; -fx-text-fill: #1a73e8;
+                           -fx-font-weight: bold; -fx-background-radius: 6;"/>
+        </HBox>
+    </top>
+
+    <center>
+        <SplitPane dividerPositions="0.45">
+
+            <ScrollPane fitToWidth="true">
+                <VBox spacing="12">
+                    <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+                    <Label text="Agendar nueva cita"
+                           style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+
+                    <Label text="Medico:"/>
+                    <ComboBox fx:id="cbMedico" maxWidth="Infinity" promptText="Selecciona medico"/>
+
+                    <Label text="Fecha (AAAA-MM-DD):"/>
+                    <TextField fx:id="txtFecha" promptText="2025-06-15"
+                               style="-fx-pref-height: 36;"/>
+
+                    <Label text="Hora:"/>
+                    <ComboBox fx:id="cbHora" maxWidth="Infinity"/>
+
+                    <Label text="Tipo de cita:"/>
+                    <ComboBox fx:id="cbTipo" maxWidth="Infinity"/>
+
+                    <Label text="Motivo de consulta:"/>
+                    <TextField fx:id="txtMotivo" promptText="Describe tu motivo (opcional)"
+                               style="-fx-pref-height: 36;"/>
+
+                    <Button text="Agendar cita" onAction="#handleAgendarCita"
+                            maxWidth="Infinity"
+                            style="-fx-background-color: #1a73e8; -fx-text-fill: white;
+                                   -fx-font-size: 14; -fx-font-weight: bold;
+                                   -fx-background-radius: 6; -fx-pref-height: 40;"/>
+
+                    <Label fx:id="lblMensaje" text="" wrapText="true"
+                           style="-fx-text-fill: #2e7d32; -fx-font-size: 12;"/>
+                </VBox>
+            </ScrollPane>
+
+            <VBox spacing="10">
+                <padding><Insets top="20" right="16" bottom="16" left="16"/></padding>
+                <HBox alignment="CENTER_LEFT" spacing="10">
+                    <Label text="Mis citas"
+                           style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+                </HBox>
+
+                <TableView fx:id="tablaCitas" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="colFecha"  text="Fecha"   prefWidth="100"/>
+                        <TableColumn fx:id="colMedico" text="Medico"  prefWidth="150"/>
+                        <TableColumn fx:id="colHora"   text="Hora"    prefWidth="70"/>
+                        <TableColumn fx:id="colTipo"   text="Tipo"    prefWidth="90"/>
+                        <TableColumn fx:id="colEstado" text="Estado"  prefWidth="100"/>
+                    </columns>
+                </TableView>
+
+                <Button text="Cancelar cita seleccionada"
+                        onAction="#handleCancelarCita"
+                        style="-fx-background-color: #e53935; -fx-text-fill: white;
+                               -fx-background-radius: 6;"/>
+            </VBox>
+
+        </SplitPane>
+    </center>
+</BorderPane>

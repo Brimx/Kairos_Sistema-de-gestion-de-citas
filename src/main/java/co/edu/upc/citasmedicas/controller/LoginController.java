@@ -56,7 +56,18 @@ public class LoginController {
         }
 
         Session.setUsuarioActual(usuario);
-        ViewManager.showView("/co/edu/upc/citasmedicas/fxml/dashboard.fxml", "Panel principal - Sistema EPS");
+
+        String fxmlPath = switch (usuario.getRol()) {
+            case ADMIN -> "/co/edu/upc/citasmedicas/fxml/dashboard_admin.fxml";
+            case MEDICO -> "/co/edu/upc/citasmedicas/fxml/dashboard_medico.fxml";
+            case PACIENTE -> "/co/edu/upc/citasmedicas/fxml/dashboard_paciente.fxml";
+        };
+        String titulo = switch (usuario.getRol()) {
+            case ADMIN -> "Panel administrador - Sistema EPS";
+            case MEDICO -> "Panel medico - Sistema EPS";
+            case PACIENTE -> "Panel paciente - Sistema EPS";
+        };
+        ViewManager.showView(fxmlPath, titulo);
     }
 
     @FXML

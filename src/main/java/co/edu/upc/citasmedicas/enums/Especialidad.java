@@ -15,5 +15,17 @@ public enum Especialidad {
     NEUROLOGIA,
     OFTALMOLOGIA,
     ODONTOLOGIA,
-    PSICOLOGIA
+    PSICOLOGIA;
+
+    public String getNombre() {
+        String[] partes = name().toLowerCase().split("_");
+        StringBuilder builder = new StringBuilder();
+        for (String parte : partes) {
+            if (!builder.isEmpty()) {
+                builder.append(' ');
+            }
+            builder.append(Character.toUpperCase(parte.charAt(0))).append(parte.substring(1));
+        }
+        return builder.toString();
+    }
 }
