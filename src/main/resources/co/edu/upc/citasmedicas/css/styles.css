@@ -1,13 +1,18 @@
 @font-face {
-    src: url('../fonts/IBMPlexSans-Regular.ttf');
+    font-family: 'IBM Plex Sans';
+    src: url('/co/edu/upc/citasmedicas/fonts/IBMPlexSans-Regular.ttf');
 }
 
 @font-face {
-    src: url('../fonts/IBMPlexSans-Bold.ttf');
+    font-family: 'IBM Plex Sans';
+    src: url('/co/edu/upc/citasmedicas/fonts/IBMPlexSans-Bold.ttf');
+    font-weight: bold;
 }
 
 @font-face {
-    src: url('../fonts/IBMPlexSans-Medium.ttf');
+    font-family: 'IBM Plex Sans';
+    src: url('/co/edu/upc/citasmedicas/fonts/IBMPlexSans-Medium.ttf');
+    font-weight: 500;
 }
 
 .root {
