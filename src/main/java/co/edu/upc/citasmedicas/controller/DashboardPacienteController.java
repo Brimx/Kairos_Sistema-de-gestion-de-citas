@@ -21,6 +21,8 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
@@ -144,7 +146,7 @@ public class DashboardPacienteController {
                 agregarEntryCalendario(c, pendientes, confirmadas, completadas, canceladas);
             }
         } catch (RuntimeException e) {
-            lblMensaje.setText("Error al cargar calendario.");
+            mostrarError(lblMensaje, "Error al cargar calendario.");
         }
     }
 
@@ -176,7 +178,7 @@ public class DashboardPacienteController {
             }
             cbMedico.setItems(FXCollections.observableArrayList(mapaIdsMedicos.keySet()));
         } catch (RuntimeException exception) {
-            lblMensaje.setText("Error al cargar medicos.");
+            mostrarError(lblMensaje, "Error al cargar medicos.");
         }
     }
 
@@ -187,7 +189,7 @@ public class DashboardPacienteController {
                     citaService.citasDelPaciente(paciente.getId())));
             cargarCalendario();
         } catch (RuntimeException exception) {
-            lblMensaje.setText("Error al cargar tus citas.");
+            mostrarError(lblMensaje, "Error al cargar tus citas.");
         }
     }
 
@@ -201,7 +203,7 @@ public class DashboardPacienteController {
         String motivo = txtMotivo.getText() == null ? "" : txtMotivo.getText().trim();
 
         if (medicoKey == null || fechaTexto.isEmpty() || hora == null || tipo == null) {
-            lblMensaje.setText("Completa medico, fecha y hora.");
+            mostrarError(lblMensaje, "Completa medico, fecha y hora.");
             return;
         }
 
@@ -213,7 +215,7 @@ public class DashboardPacienteController {
             Medico medico = medicoDAO.buscarPorId(medicoId);
 
             if (paciente == null || medico == null) {
-                lblMensaje.setText("No se pudo cargar paciente o medico.");
+                mostrarError(lblMensaje, "No se pudo cargar paciente o medico.");
                 return;
             }
 
@@ -228,13 +230,13 @@ public class DashboardPacienteController {
                     motivo.isBlank() ? "Consulta general" : motivo
             );
             citaService.agendarCita(cita);
-            lblMensaje.setText("Cita agendada correctamente.");
+            mostrarExito(lblMensaje, "Cita agendada correctamente.");
             limpiarFormulario();
             cargarMisCitas();
         } catch (DateTimeParseException exception) {
-            lblMensaje.setText("Formato de fecha u hora invalido (AAAA-MM-DD).");
+            mostrarError(lblMensaje, "Formato de fecha u hora invalido (AAAA-MM-DD).");
         } catch (IllegalArgumentException | IllegalStateException exception) {
-            lblMensaje.setText(exception.getMessage());
+            mostrarError(lblMensaje, exception.getMessage());
         }
     }
 
@@ -242,20 +244,27 @@ public class DashboardPacienteController {
     private void handleCancelarCita() {
         Cita sel = tablaCitas.getSelectionModel().getSelectedItem();
         if (sel == null) {
-            lblMensaje.setText("Selecciona una cita para cancelar.");
+            mostrarError(lblMensaje, "Selecciona una cita para cancelar.");
             return;
         }
         if (sel.getEstado() == EstadoCita.COMPLETADA) {
-            lblMensaje.setText("No puedes cancelar una cita ya completada.");
+            mostrarError(lblMensaje, "No puedes cancelar una cita ya completada.");
             return;
         }
-        try {
-            citaService.cancelarCita(sel.getId());
-            lblMensaje.setText("Cita cancelada.");
-            cargarMisCitas();
-        } catch (IllegalArgumentException | IllegalStateException exception) {
-            lblMensaje.setText(exception.getMessage());
-        }
+        Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION,
+                "Cancelar la cita con " + sel.getMedico().getNombre() + " del " + sel.getFecha() + "?",
+                ButtonType.YES, ButtonType.NO);
+        dialogo.showAndWait().ifPresent(boton -> {
+            if (boton == ButtonType.YES) {
+                try {
+                    citaService.cancelarCita(sel.getId());
+                    mostrarExito(lblMensaje, "Cita cancelada.");
+                    cargarMisCitas();
+                } catch (IllegalArgumentException | IllegalStateException exception) {
+                    mostrarError(lblMensaje, exception.getMessage());
+                }
+            }
+        });
     }
 
     @FXML
@@ -270,5 +279,21 @@ public class DashboardPacienteController {
         cbHora.setValue(null);
         txtMotivo.clear();
         cbTipo.setValue("PRESENCIAL");
+    }
+
+    private void mostrarExito(Label label, String mensaje) {
+        label.setText(mensaje);
+        label.getStyleClass().removeAll("feedback-error");
+        if (!label.getStyleClass().contains("feedback-ok")) {
+            label.getStyleClass().add("feedback-ok");
+        }
+    }
+
+    private void mostrarError(Label label, String mensaje) {
+        label.setText(mensaje);
+        label.getStyleClass().removeAll("feedback-ok");
+        if (!label.getStyleClass().contains("feedback-error")) {
+            label.getStyleClass().add("feedback-error");
+        }
     }
 }

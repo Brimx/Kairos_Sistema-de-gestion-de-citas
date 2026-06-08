@@ -45,6 +45,8 @@ public class DashboardAdminController {
 
     @FXML private Label lblBienvenida;
     @FXML private Label lblMensaje;
+    @FXML private Label lblMensajeMedicos;
+    @FXML private Label lblMensajeCitas;
 
     private final PacienteService pacienteService = new PacienteService();
     private final MedicoDAO medicoDAO = new MedicoDAO();
@@ -91,7 +93,7 @@ public class DashboardAdminController {
         try {
             tablaPacientes.setItems(FXCollections.observableArrayList(pacienteService.listarPacientes()));
         } catch (RuntimeException exception) {
-            lblMensaje.setText("Error al cargar pacientes.");
+            mostrarError(lblMensaje, "Error al cargar pacientes.");
         }
     }
 
@@ -99,7 +101,7 @@ public class DashboardAdminController {
         try {
             tablaMedicos.setItems(FXCollections.observableArrayList(medicoDAO.obtenerTodos()));
         } catch (RuntimeException exception) {
-            lblMensaje.setText("Error al cargar medicos.");
+            mostrarError(lblMensajeMedicos, "Error al cargar medicos.");
         }
     }
 
@@ -107,7 +109,7 @@ public class DashboardAdminController {
         try {
             tablaCitas.setItems(FXCollections.observableArrayList(citaService.todasLasCitas()));
         } catch (RuntimeException exception) {
-            lblMensaje.setText("Error al cargar citas.");
+            mostrarError(lblMensajeCitas, "Error al cargar citas.");
         }
     }
 
@@ -115,23 +117,23 @@ public class DashboardAdminController {
     private void handleGuardarPaciente() {
         Paciente sel = tablaPacientes.getSelectionModel().getSelectedItem();
         if (sel == null) {
-            lblMensaje.setText("Selecciona un paciente.");
+            mostrarError(lblMensaje, "Selecciona un paciente.");
             return;
         }
 
         String nombre = txtEditNombre.getText().trim();
         String telefono = txtEditTel.getText().trim();
         if (nombre.isEmpty()) {
-            lblMensaje.setText("El nombre no puede estar vacio.");
+            mostrarError(lblMensaje, "El nombre no puede estar vacio.");
             return;
         }
 
         try {
             pacienteService.actualizarDatos(sel.getId(), nombre, sel.getApellido(), telefono);
-            lblMensaje.setText("Paciente actualizado.");
+            mostrarExito(lblMensaje, "Paciente actualizado.");
             cargarPacientes();
         } catch (IllegalArgumentException | IllegalStateException exception) {
-            lblMensaje.setText(exception.getMessage());
+            mostrarError(lblMensaje, exception.getMessage());
         }
     }
 
@@ -139,7 +141,7 @@ public class DashboardAdminController {
     private void handleDesactivarPaciente() {
         Paciente sel = tablaPacientes.getSelectionModel().getSelectedItem();
         if (sel == null) {
-            lblMensaje.setText("Selecciona un paciente.");
+            mostrarError(lblMensaje, "Selecciona un paciente.");
             return;
         }
 
@@ -150,10 +152,10 @@ public class DashboardAdminController {
             if (boton == ButtonType.YES) {
                 try {
                     pacienteService.desactivarPaciente(sel.getId());
-                    lblMensaje.setText("Paciente desactivado.");
+                    mostrarExito(lblMensaje, "Paciente desactivado.");
                     cargarPacientes();
                 } catch (IllegalArgumentException | IllegalStateException exception) {
-                    lblMensaje.setText(exception.getMessage());
+                    mostrarError(lblMensaje, exception.getMessage());
                 }
             }
         });
@@ -163,15 +165,15 @@ public class DashboardAdminController {
     private void handleConfirmarCita() {
         Cita sel = tablaCitas.getSelectionModel().getSelectedItem();
         if (sel == null) {
-            lblMensaje.setText("Selecciona una cita.");
+            mostrarError(lblMensajeCitas, "Selecciona una cita.");
             return;
         }
         try {
             citaService.confirmarCita(sel.getId());
-            lblMensaje.setText("Cita confirmada.");
+            mostrarExito(lblMensajeCitas, "Cita confirmada.");
             cargarCitas();
         } catch (IllegalArgumentException | IllegalStateException exception) {
-            lblMensaje.setText(exception.getMessage());
+            mostrarError(lblMensajeCitas, exception.getMessage());
         }
     }
 
@@ -179,15 +181,31 @@ public class DashboardAdminController {
     private void handleCancelarCita() {
         Cita sel = tablaCitas.getSelectionModel().getSelectedItem();
         if (sel == null) {
-            lblMensaje.setText("Selecciona una cita.");
+            mostrarError(lblMensajeCitas, "Selecciona una cita.");
             return;
         }
         try {
             citaService.cancelarCita(sel.getId());
-            lblMensaje.setText("Cita cancelada.");
+            mostrarExito(lblMensajeCitas, "Cita cancelada.");
             cargarCitas();
         } catch (IllegalArgumentException | IllegalStateException exception) {
-            lblMensaje.setText(exception.getMessage());
+            mostrarError(lblMensajeCitas, exception.getMessage());
+        }
+    }
+
+    private void mostrarExito(Label label, String mensaje) {
+        label.setText(mensaje);
+        label.getStyleClass().removeAll("feedback-error");
+        if (!label.getStyleClass().contains("feedback-ok")) {
+            label.getStyleClass().add("feedback-ok");
+        }
+    }
+
+    private void mostrarError(Label label, String mensaje) {
+        label.setText(mensaje);
+        label.getStyleClass().removeAll("feedback-ok");
+        if (!label.getStyleClass().contains("feedback-error")) {
+            label.getStyleClass().add("feedback-error");
         }
     }
 

@@ -61,6 +61,7 @@
                             <TableColumn fx:id="colMedEsp"    text="Especialidad" prefWidth="200"/>
                         </columns>
                     </TableView>
+                    <Label fx:id="lblMensajeMedicos" text="" styleClass="feedback-ok"/>
                 </VBox>
             </Tab>
 
@@ -81,6 +82,7 @@
                         <Button text="Confirmar cita" onAction="#handleConfirmarCita" styleClass="btn-success"/>
                         <Button text="Cancelar cita" onAction="#handleCancelarCita" styleClass="btn-danger"/>
                     </HBox>
+                    <Label fx:id="lblMensajeCitas" text="" styleClass="feedback-ok"/>
                 </VBox>
             </Tab>
 

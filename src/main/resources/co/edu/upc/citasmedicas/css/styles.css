@@ -2,6 +2,20 @@
     -fx-font-family: 'IBM Plex Sans';
 }
 
+.root * {
+    -fx-font-family: 'IBM Plex Sans';
+}
+
+.calendar-view,
+.calendar-header-view,
+.month-view,
+.week-view,
+.day-view,
+.year-view,
+.date-picker-popup {
+    -fx-font-family: 'IBM Plex Sans';
+}
+
 .bg-default {
     -fx-background-color: #f4f6fa;
 }

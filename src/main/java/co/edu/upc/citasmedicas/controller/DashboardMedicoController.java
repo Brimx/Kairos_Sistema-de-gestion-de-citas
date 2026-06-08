@@ -16,6 +16,8 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -116,7 +118,7 @@ public class DashboardMedicoController {
                 agregarEntryCalendario(c, pendientes, confirmadas, completadas, canceladas);
             }
         } catch (RuntimeException e) {
-            lblMensaje.setText("Error al cargar calendario.");
+            mostrarError(lblMensaje, "Error al cargar calendario.");
         }
     }
 
@@ -144,7 +146,7 @@ public class DashboardMedicoController {
                     citaService.agendaDelMedico(medico.getId())));
             cargarCalendario();
         } catch (RuntimeException exception) {
-            lblMensaje.setText("Error al cargar agenda.");
+            mostrarError(lblMensaje, "Error al cargar agenda.");
         }
     }
 
@@ -152,27 +154,50 @@ public class DashboardMedicoController {
     private void handleAtender() {
         Cita sel = tablaAgenda.getSelectionModel().getSelectedItem();
         if (sel == null) {
-            lblMensaje.setText("Selecciona una cita.");
+            mostrarError(lblMensaje, "Selecciona una cita.");
             return;
         }
-        try {
-            citaService.atenderCita(sel.getId());
-            lblMensaje.setText("Cita marcada como completada.");
-            cargarAgenda();
-        } catch (IllegalArgumentException | IllegalStateException exception) {
-            lblMensaje.setText(exception.getMessage());
-        }
+        Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION,
+                "Marcar como completada la cita de " + sel.getPaciente().getNombre() + "?",
+                ButtonType.YES, ButtonType.NO);
+        dialogo.showAndWait().ifPresent(boton -> {
+            if (boton == ButtonType.YES) {
+                try {
+                    citaService.atenderCita(sel.getId());
+                    mostrarExito(lblMensaje, "Cita marcada como completada.");
+                    cargarAgenda();
+                } catch (IllegalArgumentException | IllegalStateException exception) {
+                    mostrarError(lblMensaje, exception.getMessage());
+                }
+            }
+        });
     }
 
     @FXML
     private void handleActualizar() {
         cargarAgenda();
-        lblMensaje.setText("Agenda actualizada.");
+        mostrarExito(lblMensaje, "Agenda actualizada.");
     }
 
     @FXML
     private void handleCerrarSesion() throws IOException {
         Session.cerrar();
         ViewManager.showView("/co/edu/upc/citasmedicas/fxml/login.fxml", "Sistema de Citas Medicas EPS");
+    }
+
+    private void mostrarExito(Label label, String mensaje) {
+        label.setText(mensaje);
+        label.getStyleClass().removeAll("feedback-error");
+        if (!label.getStyleClass().contains("feedback-ok")) {
+            label.getStyleClass().add("feedback-ok");
+        }
+    }
+
+    private void mostrarError(Label label, String mensaje) {
+        label.setText(mensaje);
+        label.getStyleClass().removeAll("feedback-ok");
+        if (!label.getStyleClass().contains("feedback-error")) {
+            label.getStyleClass().add("feedback-error");
+        }
     }
 }
