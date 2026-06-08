@@ -26,6 +26,7 @@
         <TextField fx:id="emailField" promptText="Email" styleClass="input-field"/>
         <PasswordField fx:id="passwordField" promptText="Contraseña" styleClass="input-field"/>
         <TextField fx:id="telefonoField" promptText="Teléfono" styleClass="input-field"/>
+        <TextField fx:id="confirmarTelefonoField" promptText="Confirmar teléfono" styleClass="input-field"/>
     </VBox>
 
     <VBox spacing="8.0" prefWidth="300.0">
@@ -35,7 +36,7 @@
             <items>
                 <FXCollections fx:factory="observableArrayList">
                     <String fx:value="PACIENTE"/>
-                    <String fx:value="MÉDICO"/>
+                    <String fx:value="MEDICO"/>
                     <String fx:value="ADMINISTRADOR"/>
                 </FXCollections>
             </items>
