@@ -61,7 +61,6 @@ public abstract class Usuario {
     }
 
     public void logout() {
-        System.out.println("Sesión cerrada para: " + nombre + " " + apellido);
     }
 
     @Override

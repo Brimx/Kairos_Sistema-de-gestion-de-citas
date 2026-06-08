@@ -42,8 +42,6 @@ public class Turno {
      */
     public void llamar() {
         this.estado = EstadoTurno.LLAMADO;
-        System.out.println("Llamando turno T-" + String.format("%03d", numero)
-                + ": " + paciente.getNombre() + " " + paciente.getApellido());
     }
 
     /**

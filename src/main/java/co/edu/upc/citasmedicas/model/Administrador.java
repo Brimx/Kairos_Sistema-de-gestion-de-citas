@@ -37,12 +37,9 @@ public class Administrador extends Usuario {
 
     // --- Métodos de negocio ---
     public void gestionarUsuario(String accion, String usuarioId) {
-        System.out.println("Admin [" + codigoAdmin + "] ejecutó '" + accion
-                + "' sobre usuario ID: " + usuarioId);
     }
 
     public void verReportes() {
-        System.out.println("Generando reportes del sistema...");
     }
 
     @Override

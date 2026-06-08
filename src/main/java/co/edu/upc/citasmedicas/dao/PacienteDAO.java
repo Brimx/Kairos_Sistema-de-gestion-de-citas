@@ -16,7 +16,8 @@ import java.util.List;
 public class PacienteDAO {
 
     public void guardar(Paciente paciente) {
-        throw new UnsupportedOperationException("Guardar pacientes desde SQLite aun no esta implementado");
+        UsuarioDAO usuarioDAO = new UsuarioDAO();
+        usuarioDAO.guardarPaciente(paciente);
     }
 
     public Paciente buscarPorId(String id) {

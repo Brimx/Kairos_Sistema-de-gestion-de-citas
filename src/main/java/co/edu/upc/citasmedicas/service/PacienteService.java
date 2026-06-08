@@ -26,7 +26,6 @@ public class PacienteService {
         if (paciente == null || paciente.getNumeroDocumento() == null || paciente.getNumeroDocumento().isEmpty()) {
             throw new IllegalArgumentException("Datos del paciente inválidos");
         }
-        System.out.println("[Service] Registrando paciente con documento: " + paciente.getNumeroDocumento());
         pacienteDAO.guardar(paciente);
     }
 
