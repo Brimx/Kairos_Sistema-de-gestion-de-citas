@@ -35,6 +35,12 @@ public class ViewManager {
         
         primaryStage.setTitle(title);
         primaryStage.setScene(scene);
+
+        double pw = root.prefWidth(-1);
+        double ph = root.prefHeight(-1);
+        if (pw > 0) primaryStage.setWidth(pw);
+        if (ph > 0) primaryStage.setHeight(ph);
+
         primaryStage.show();
     }
 }

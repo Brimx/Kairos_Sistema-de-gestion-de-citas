@@ -2,6 +2,7 @@ package co.edu.upc.citasmedicas.dao;
 
 import co.edu.upc.citasmedicas.enums.Especialidad;
 import co.edu.upc.citasmedicas.enums.EstadoCita;
+import co.edu.upc.citasmedicas.enums.ServicioCita;
 import co.edu.upc.citasmedicas.enums.TipoCita;
 import co.edu.upc.citasmedicas.model.Cita;
 import co.edu.upc.citasmedicas.model.Medico;
@@ -16,16 +17,13 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Acceso a datos para la entidad Cita.
- */
 public class CitaDAO {
 
     public void guardar(Cita cita) {
         String sql = """
                 INSERT INTO citas
-                (id, paciente_id, medico_id, especialidad, fecha, hora_inicio, estado, tipo, motivo)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, paciente_id, medico_id, especialidad, servicio, fecha, hora_inicio, estado, tipo, motivo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection connection = DatabaseConnection.getConnection();
@@ -35,11 +33,12 @@ public class CitaDAO {
             statement.setString(2, cita.getPaciente().getId());
             statement.setString(3, cita.getMedico().getId());
             statement.setString(4, cita.getEspecialidad().name());
-            statement.setString(5, cita.getFecha().toString());
-            statement.setString(6, cita.getHoraInicio().toString());
-            statement.setString(7, cita.getEstado().name());
-            statement.setString(8, cita.getTipo().name());
-            statement.setString(9, cita.getMotivo());
+            statement.setString(5, cita.getServicio().name());
+            statement.setString(6, cita.getFecha().toString());
+            statement.setString(7, cita.getHoraInicio().toString());
+            statement.setString(8, cita.getEstado().name());
+            statement.setString(9, cita.getTipo().name());
+            statement.setString(10, cita.getMotivo());
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("No se pudo guardar la cita", exception);
@@ -61,6 +60,33 @@ public class CitaDAO {
             }
         } catch (SQLException exception) {
             throw new IllegalStateException("No se pudo actualizar el estado de la cita", exception);
+        }
+    }
+
+    public void actualizarCita(Cita cita) {
+        String sql = """
+                UPDATE citas
+                SET medico_id = ?, especialidad = ?, servicio = ?, fecha = ?, hora_inicio = ?, tipo = ?, motivo = ?
+                WHERE id = ?
+                """;
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, cita.getMedico().getId());
+            statement.setString(2, cita.getEspecialidad().name());
+            statement.setString(3, cita.getServicio().name());
+            statement.setString(4, cita.getFecha().toString());
+            statement.setString(5, cita.getHoraInicio().toString());
+            statement.setString(6, cita.getTipo().name());
+            statement.setString(7, cita.getMotivo());
+            statement.setString(8, cita.getId());
+
+            if (statement.executeUpdate() == 0) {
+                throw new IllegalArgumentException("No existe una cita con el id indicado");
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudo actualizar la cita", exception);
         }
     }
 
@@ -180,7 +206,7 @@ public class CitaDAO {
 
     private String consultaBase() {
         return """
-                SELECT c.id, c.especialidad, c.fecha, c.hora_inicio, c.estado, c.tipo, c.motivo,
+                SELECT c.id, c.especialidad, c.servicio, c.fecha, c.hora_inicio, c.estado, c.tipo, c.motivo,
                        pu.id AS paciente_id, pu.nombre AS paciente_nombre, pu.apellido AS paciente_apellido,
                        pu.email AS paciente_email, pu.password AS paciente_password, pu.telefono AS paciente_telefono,
                        p.tipo_documento, p.numero_documento, p.fecha_nacimiento, p.direccion, p.eps,
@@ -226,7 +252,7 @@ public class CitaDAO {
                 resultSet.getString("id"),
                 paciente,
                 medico,
-                Especialidad.valueOf(resultSet.getString("especialidad")),
+                ServicioCita.valueOf(resultSet.getString("servicio")),
                 LocalDate.parse(resultSet.getString("fecha")),
                 LocalTime.parse(resultSet.getString("hora_inicio")),
                 TipoCita.valueOf(resultSet.getString("tipo")),

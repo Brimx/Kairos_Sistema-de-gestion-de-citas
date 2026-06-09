@@ -97,6 +97,9 @@ public class CitaService {
         if (cita.getMedico() == null) {
             throw new IllegalArgumentException("Selecciona un medico");
         }
+        if (cita.getServicio() == null) {
+            throw new IllegalArgumentException("Selecciona un servicio");
+        }
         if (cita.getEspecialidad() == null) {
             throw new IllegalArgumentException("Selecciona una especialidad");
         }

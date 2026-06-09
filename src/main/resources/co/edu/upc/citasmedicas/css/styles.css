@@ -193,6 +193,32 @@
     -fx-pref-height: 34;
 }
 
+.input-field-pwd {
+    -fx-padding: 9px 6px;
+}
+
+.password-wrapper {
+    -fx-pref-width: 260px;
+    -fx-max-width: Infinity;
+    -fx-min-height: 34;
+}
+
+.toggle-password-btn {
+    -fx-background-color: #eef2ff;
+    -fx-border-color: #cbd5e1;
+    -fx-border-width: 1 1 1 0;
+    -fx-border-radius: 0 4 4 0;
+    -fx-background-radius: 0 4 4 0;
+    -fx-padding: 4 10;
+    -fx-cursor: hand;
+    -fx-font-size: 16;
+    -fx-text-fill: #1e3a8a;
+}
+
+.toggle-password-btn:hover {
+    -fx-background-color: #dbeafe;
+}
+
 .row-pendiente {
     -fx-background-color: #fef3c7;
 }

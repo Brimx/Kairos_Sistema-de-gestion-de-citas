@@ -6,9 +6,11 @@ import co.edu.upc.citasmedicas.model.Usuario;
 import co.edu.upc.citasmedicas.service.Session;
 import co.edu.upc.citasmedicas.view.ViewManager;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -25,6 +27,12 @@ public class LoginController {
     private PasswordField passwordField;
 
     @FXML
+    private TextField passwordVisibleField;
+
+    @FXML
+    private Button togglePasswordBtn;
+
+    @FXML
     private Label errorLabel;
 
     private final UsuarioDAO usuarioDAO = new UsuarioDAO();
@@ -37,6 +45,19 @@ public class LoginController {
         } catch (SQLException exception) {
             errorLabel.setText("No se pudo inicializar SQLite");
         }
+        passwordVisibleField.textProperty().bindBidirectional(passwordField.textProperty());
+        Tooltip.install(togglePasswordBtn, new Tooltip("Mostrar contraseña"));
+    }
+
+    @FXML
+    private void togglePasswordVisibility() {
+        boolean showing = passwordVisibleField.isVisible();
+        passwordField.setVisible(showing);
+        passwordField.setManaged(showing);
+        passwordVisibleField.setVisible(!showing);
+        passwordVisibleField.setManaged(!showing);
+        togglePasswordBtn.setText(showing ? "🙈" : "👁");
+        Tooltip.install(togglePasswordBtn, new Tooltip(showing ? "Ocultar contraseña" : "Mostrar contraseña"));
     }
 
     @FXML

@@ -1,6 +1,11 @@
 package co.edu.upc.citasmedicas.controller;
 
+import co.edu.upc.citasmedicas.dao.CitaDAO;
+import co.edu.upc.citasmedicas.dao.MedicoDAO;
+import co.edu.upc.citasmedicas.enums.Especialidad;
 import co.edu.upc.citasmedicas.enums.EstadoCita;
+import co.edu.upc.citasmedicas.enums.ServicioCita;
+import co.edu.upc.citasmedicas.enums.TipoCita;
 import co.edu.upc.citasmedicas.model.Cita;
 import co.edu.upc.citasmedicas.model.Medico;
 import co.edu.upc.citasmedicas.service.CitaService;
@@ -21,7 +26,11 @@ import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
@@ -29,7 +38,9 @@ import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
+import javafx.geometry.Insets;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -37,6 +48,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class DashboardMedicoController {
 
@@ -45,8 +57,13 @@ public class DashboardMedicoController {
     @FXML private Label lblContador;
     @FXML private TableView<Cita> tablaAgenda;
     @FXML private TableColumn<Cita, String> colPaciente;
+    @FXML private TableColumn<Cita, String> colTipoDocPac;
+    @FXML private TableColumn<Cita, String> colDocPac;
+    @FXML private TableColumn<Cita, String> colEmailPac;
+    @FXML private TableColumn<Cita, String> colDireccionPac;
     @FXML private TableColumn<Cita, String> colFecha;
     @FXML private TableColumn<Cita, String> colHora;
+    @FXML private TableColumn<Cita, String> colServicio;
     @FXML private TableColumn<Cita, String> colTipo;
     @FXML private TableColumn<Cita, String> colMotivo;
     @FXML private TableColumn<Cita, String> colEstado;
@@ -55,7 +72,10 @@ public class DashboardMedicoController {
     @FXML private VBox calendarContainer;
 
     private final CitaService citaService = new CitaService();
+    private final MedicoDAO medicoDAO = new MedicoDAO();
+    private final CitaDAO citaDAO = new CitaDAO();
     private CalendarView calendarView;
+    private CalendarSource calendarSource;
     private ObservableList<Cita> listaCitas = FXCollections.observableArrayList();
     private FilteredList<Cita> filteredCitas;
 
@@ -67,9 +87,14 @@ public class DashboardMedicoController {
 
         colPaciente.setCellValueFactory(d -> new SimpleStringProperty(
                 d.getValue().getPaciente().getNombre() + " " + d.getValue().getPaciente().getApellido()));
+        colTipoDocPac.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getPaciente().getTipoDocumento()));
+        colDocPac.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getPaciente().getNumeroDocumento()));
+        colEmailPac.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getPaciente().getEmail()));
+        colDireccionPac.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getPaciente().getDireccion()));
         colFecha.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getFecha().toString()));
         colHora.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getHoraInicio().toString()));
-        colTipo.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTipo().name()));
+        colServicio.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getServicio().getNombre()));
+        colTipo.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTipo().getNombre()));
         colMotivo.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getMotivo()));
         colEstado.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getEstado().name()));
 
@@ -86,9 +111,13 @@ public class DashboardMedicoController {
                 if (filtro.isEmpty()) return true;
                 return cita.getPaciente().getNombre().toLowerCase().contains(filtro)
                     || cita.getPaciente().getApellido().toLowerCase().contains(filtro)
+                    || cita.getPaciente().getNumeroDocumento().toLowerCase().contains(filtro)
+                    || cita.getPaciente().getEmail().toLowerCase().contains(filtro)
+                    || cita.getPaciente().getDireccion().toLowerCase().contains(filtro)
                     || cita.getFecha().toString().contains(filtro)
                     || cita.getEstado().name().toLowerCase().contains(filtro)
-                    || cita.getTipo().name().toLowerCase().contains(filtro)
+                    || cita.getServicio().getNombre().toLowerCase().contains(filtro)
+                    || cita.getTipo().getNombre().toLowerCase().contains(filtro)
                     || cita.getMotivo().toLowerCase().contains(filtro);
             });
             actualizarContador();
@@ -131,9 +160,9 @@ public class DashboardMedicoController {
         completadas.setStyle(Style.STYLE3);
         canceladas.setStyle(Style.STYLE4);
 
-        CalendarSource source = new CalendarSource("Agenda");
-        source.getCalendars().addAll(pendientes, confirmadas, completadas, canceladas);
-        calendarView.getCalendarSources().add(source);
+        calendarSource = new CalendarSource("Agenda");
+        calendarSource.getCalendars().addAll(pendientes, confirmadas, completadas, canceladas);
+        calendarView.getCalendarSources().setAll(calendarSource);
 
         calendarView.setRequestedTime(LocalTime.now());
 
@@ -158,15 +187,14 @@ public class DashboardMedicoController {
     }
 
     private void cargarCalendario() {
-        CalendarSource source = calendarView.getCalendarSources().get(0);
-        source.getCalendars().forEach(cal -> cal.clear());
-
-        Calendar<?> pendientes = source.getCalendars().get(0);
-        Calendar<?> confirmadas = source.getCalendars().get(1);
-        Calendar<?> completadas = source.getCalendars().get(2);
-        Calendar<?> canceladas = source.getCalendars().get(3);
-
         try {
+            calendarSource.getCalendars().forEach(cal -> cal.clear());
+
+            Calendar<?> pendientes = calendarSource.getCalendars().get(0);
+            Calendar<?> confirmadas = calendarSource.getCalendars().get(1);
+            Calendar<?> completadas = calendarSource.getCalendars().get(2);
+            Calendar<?> canceladas = calendarSource.getCalendars().get(3);
+
             Medico medico = (Medico) Session.getUsuarioActual();
             List<Cita> citas = citaService.agendaDelMedico(medico.getId());
             for (Cita c : citas) {
@@ -214,7 +242,8 @@ public class DashboardMedicoController {
     @SuppressWarnings({"rawtypes", "unchecked"})
     private void conectarTooltips() {
         for (TableColumn col : new TableColumn[]{
-                colPaciente, colFecha, colHora, colTipo, colMotivo, colEstado
+                colPaciente, colTipoDocPac, colDocPac, colEmailPac, colDireccionPac,
+                colFecha, colHora, colServicio, colTipo, colMotivo, colEstado
         }) {
             col.setCellFactory(tc -> new TableCell() {
                 @Override
@@ -255,6 +284,154 @@ public class DashboardMedicoController {
     private void handleActualizar() {
         cargarAgenda();
         mostrarExito(lblMensaje, "Agenda actualizada.");
+    }
+
+    @FXML
+    private void handleModificarMisDatos() {
+        Medico medico = (Medico) Session.getUsuarioActual();
+
+        Dialog<Medico> dialog = new Dialog<>();
+        dialog.setTitle("Mis datos");
+        dialog.setHeaderText("Modifica tus datos personales");
+
+        ButtonType btnGuardar = new ButtonType("Guardar cambios", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(16));
+
+        TextField nombre = new TextField(medico.getNombre());
+        TextField apellido = new TextField(medico.getApellido());
+        TextField email = new TextField(medico.getEmail());
+        TextField telefono = new TextField(medico.getTelefono());
+        TextField registro = new TextField(medico.getRegistroMedico());
+        ComboBox<String> especialidad = new ComboBox<>();
+        especialidad.setItems(FXCollections.observableArrayList(
+                java.util.Arrays.stream(Especialidad.values()).map(Especialidad::getNombre).toList()
+        ));
+        especialidad.setValue(medico.getEspecialidad().getNombre());
+        TextField consultorio = new TextField(medico.getConsultorio());
+
+        grid.addRow(0, new Label("Nombre:"), nombre, new Label("Apellido:"), apellido);
+        grid.addRow(1, new Label("Email:"), email, new Label("Telefono:"), telefono);
+        grid.addRow(2, new Label("Registro:"), registro, new Label("Especialidad:"), especialidad);
+        grid.addRow(3, new Label("Consultorio:"), consultorio);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == btnGuardar) {
+                try {
+                    String espNombre = especialidad.getValue();
+                    Especialidad esp = espNombre != null
+                            ? Especialidad.valueOf(espNombre.toUpperCase().replace(' ', '_'))
+                            : medico.getEspecialidad();
+                    return new Medico(
+                            medico.getId(),
+                            nombre.getText().trim(), apellido.getText().trim(),
+                            email.getText().trim(), medico.getPassword(),
+                            telefono.getText().trim(),
+                            registro.getText().trim(), esp,
+                            consultorio.getText().trim()
+                    );
+                } catch (Exception e) {
+                    mostrarError(lblMensaje, "Datos invalidos: " + e.getMessage());
+                    return null;
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(m -> {
+            try {
+                medicoDAO.actualizar(m);
+                Session.setUsuarioActual(m);
+                lblBienvenida.setText("Dr(a). " + m.getNombre() + " " + m.getApellido());
+                lblEspecialidad.setText(m.getEspecialidad().getNombre());
+                mostrarExito(lblMensaje, "Datos actualizados correctamente.");
+            } catch (IllegalArgumentException | IllegalStateException exception) {
+                mostrarError(lblMensaje, exception.getMessage());
+            }
+        });
+    }
+
+    @FXML
+    private void handleReprogramarCita() {
+        Cita sel = tablaAgenda.getSelectionModel().getSelectedItem();
+        if (sel == null) {
+            mostrarError(lblMensaje, "Selecciona una cita para reprogramar.");
+            return;
+        }
+
+        Dialog<Cita> dialog = new Dialog<>();
+        dialog.setTitle("Reprogramar cita");
+        dialog.setHeaderText("Reprogramando cita de " + sel.getPaciente().getNombre()
+                + " " + sel.getPaciente().getApellido());
+
+        ButtonType btnGuardar = new ButtonType("Guardar cambios", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(16));
+
+        DatePicker dpFecha = new DatePicker(sel.getFecha());
+
+        ComboBox<String> cbHora = new ComboBox<>();
+        cbHora.setItems(FXCollections.observableArrayList(
+                "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
+                "11:00", "11:30", "14:00", "14:30", "15:00", "15:30",
+                "16:00", "16:30", "17:00"
+        ));
+        cbHora.setValue(sel.getHoraInicio().toString());
+
+        ComboBox<String> cbTipo = new ComboBox<>();
+        cbTipo.setItems(FXCollections.observableArrayList(
+                java.util.Arrays.stream(TipoCita.values()).map(TipoCita::getNombre).collect(Collectors.toList())));
+        cbTipo.setValue(sel.getTipo().getNombre());
+
+        TextField txtMotivo = new TextField(sel.getMotivo());
+
+        grid.addRow(0, new Label("Paciente:"), new Label(sel.getPaciente().getNombre() + " " + sel.getPaciente().getApellido()));
+        grid.addRow(1, new Label("Servicio:"), new Label(sel.getServicio().getNombre()));
+        grid.addRow(2, new Label("Fecha:"), dpFecha, new Label("Hora:"), cbHora);
+        grid.addRow(3, new Label("Modalidad:"), cbTipo, new Label("Motivo:"), txtMotivo);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == btnGuardar) {
+                try {
+                    String tipoNombre = cbTipo.getValue();
+                    TipoCita tipo = TipoCita.valueOf(tipoNombre.toUpperCase().replace(' ', '_'));
+                    return new Cita(
+                            sel.getId(),
+                            sel.getPaciente(), sel.getMedico(),
+                            sel.getServicio(),
+                            dpFecha.getValue(), LocalTime.parse(cbHora.getValue()),
+                            tipo,
+                            txtMotivo.getText().trim()
+                    );
+                } catch (Exception e) {
+                    mostrarError(lblMensaje, "Datos invalidos: " + e.getMessage());
+                    return null;
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(cita -> {
+            try {
+                citaDAO.actualizarCita(cita);
+                mostrarExito(lblMensaje, "Cita reprogramada correctamente.");
+                cargarAgenda();
+            } catch (IllegalArgumentException | IllegalStateException exception) {
+                mostrarError(lblMensaje, exception.getMessage());
+            }
+        });
     }
 
     @FXML

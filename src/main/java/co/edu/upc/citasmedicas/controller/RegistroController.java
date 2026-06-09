@@ -14,53 +14,46 @@ import co.edu.upc.citasmedicas.view.ViewManager;
 import javafx.fxml.FXML;
 import javafx.collections.FXCollections;
 import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
 
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Controlador para la interfaz visual de registro de usuarios.
- */
 public class RegistroController {
 
-    @FXML
-    private TextField nombreField;
+    @FXML private TextField nombreField;
+    @FXML private TextField apellidoField;
+    @FXML private TextField emailField;
+    @FXML private PasswordField passwordField;
+    @FXML private TextField passwordVisibleField;
+    @FXML private Button togglePasswordBtn;
+    @FXML private TextField telefonoField;
+    @FXML private TextField confirmarTelefonoField;
+    @FXML private ComboBox<String> rolComboBox;
+    @FXML private TextField codigoAdminField;
 
-    @FXML
-    private TextField apellidoField;
+    @FXML private VBox documentoPanel;
+    @FXML private ComboBox<String> tipoDocCombo;
+    @FXML private TextField numeroDocField;
+    @FXML private DatePicker fechaNacField;
+    @FXML private TextField direccionField;
+    @FXML private TextField epsField;
 
-    @FXML
-    private TextField emailField;
+    @FXML private VBox medicoPanel;
+    @FXML private TextField registroMedicoField;
+    @FXML private ComboBox<String> especialidadCombo;
+    @FXML private TextField consultorioField;
 
-    @FXML
-    private PasswordField passwordField;
-
-    @FXML
-    private TextField telefonoField;
-
-    @FXML
-    private TextField confirmarTelefonoField;
-
-    @FXML
-    private ComboBox<String> rolComboBox;
-
-    @FXML
-    private TextField codigoAdminField;
-
-    @FXML
-    private Label errorLabel;
-
-    @FXML
-    private Label successLabel;
+    @FXML private Label errorLabel;
+    @FXML private Label successLabel;
 
     private final UsuarioDAO usuarioDAO = new UsuarioDAO();
     private final PacienteDAO pacienteDAO = new PacienteDAO();
     private final MedicoDAO medicoDAO = new MedicoDAO();
     private final AdministradorDAO administradorDAO = new AdministradorDAO();
 
-    // Código interno para registrar administradores
     private static final String CODIGO_ADMIN_SECRETO = "ADMIN-SECRET-2026";
 
     @FXML
@@ -68,6 +61,30 @@ public class RegistroController {
         errorLabel.setText("");
         successLabel.setText("");
         rolComboBox.setItems(FXCollections.observableArrayList("PACIENTE", "MEDICO", "ADMINISTRADOR"));
+        passwordVisibleField.textProperty().bindBidirectional(passwordField.textProperty());
+        Tooltip.install(togglePasswordBtn, new Tooltip("Mostrar contrasena"));
+
+        tipoDocCombo.setItems(FXCollections.observableArrayList("CC", "TI", "CE", "Pasaporte"));
+        tipoDocCombo.setValue("CC");
+
+        especialidadCombo.setItems(FXCollections.observableArrayList(
+                java.util.Arrays.stream(Especialidad.values()).map(Especialidad::getNombre).toList()
+        ));
+
+        rolComboBox.valueProperty().addListener((obs, old, rol) -> {
+            boolean esPaciente = "PACIENTE".equals(rol);
+            boolean esMedico = "MEDICO".equals(rol);
+            boolean esAdmin = "ADMINISTRADOR".equals(rol);
+
+            documentoPanel.setVisible(esPaciente);
+            documentoPanel.setManaged(esPaciente);
+
+            medicoPanel.setVisible(esMedico);
+            medicoPanel.setManaged(esMedico);
+
+            codigoAdminField.setVisible(esAdmin);
+            codigoAdminField.setManaged(esAdmin);
+        });
 
         emailField.focusedProperty().addListener((obs, viejo, nuevo) -> {
             if (!nuevo) {
@@ -86,6 +103,26 @@ public class RegistroController {
                 validarConfirmarTelefonoCampo();
             }
         });
+    }
+
+    @FXML
+    private void togglePasswordVisibility() {
+        boolean showing = passwordVisibleField.isVisible();
+        passwordField.setVisible(showing);
+        passwordField.setManaged(showing);
+        passwordVisibleField.setVisible(!showing);
+        passwordVisibleField.setManaged(!showing);
+        togglePasswordBtn.setText(showing ? "\uD83D\uDE48" : "\uD83D\uDC41");
+        Tooltip.install(togglePasswordBtn, new Tooltip(showing ? "Ocultar contrasena" : "Mostrar contrasena"));
+        syncStyle(passwordField, passwordVisibleField);
+        syncStyle(passwordVisibleField, passwordField);
+    }
+
+    private void syncStyle(TextField from, TextField to) {
+        to.getStyleClass().removeAll("input-error", "input-valid");
+        to.getStyleClass().addAll(from.getStyleClass().filtered(
+            s -> s.equals("input-error") || s.equals("input-valid")
+        ));
     }
 
     @FXML
@@ -159,17 +196,48 @@ public class RegistroController {
             String id = generarIdUnico();
 
             if ("PACIENTE".equals(rolSeleccionado)) {
+                String tipoDoc = tipoDocCombo.getValue();
+                String numDoc = numeroDocField.getText() == null ? "" : numeroDocField.getText().trim();
+                LocalDate fechaNac = fechaNacField.getValue();
+                String direccion = direccionField.getText() == null ? "" : direccionField.getText().trim();
+                String eps = epsField.getText() == null ? "" : epsField.getText().trim();
+
+                if (numDoc.isEmpty()) {
+                    errorLabel.setText("El numero de documento es obligatorio");
+                    marcarError(numeroDocField);
+                    return;
+                }
+                if (fechaNac == null) {
+                    errorLabel.setText("La fecha de nacimiento es obligatoria");
+                    return;
+                }
+
                 Paciente paciente = new Paciente(
                         id, nombre, apellido, email, password, telefono,
-                        "CC", "00000000", LocalDate.now(), "No especificada", "No especificada"
+                        tipoDoc != null ? tipoDoc : "CC", numDoc, fechaNac,
+                        direccion.isEmpty() ? "No especificada" : direccion,
+                        eps.isEmpty() ? "No especificada" : eps
                 );
                 pacienteDAO.guardar(paciente);
+
             } else if ("MEDICO".equals(rolSeleccionado)) {
+                String registro = registroMedicoField.getText() == null ? "" : registroMedicoField.getText().trim();
+                String espNombre = especialidadCombo.getValue();
+                String consultorio = consultorioField.getText() == null ? "" : consultorioField.getText().trim();
+
+                Especialidad esp = Especialidad.MEDICINA_GENERAL;
+                if (espNombre != null) {
+                    esp = Especialidad.valueOf(espNombre.toUpperCase().replace(' ', '_'));
+                }
+
                 Medico medico = new Medico(
                         id, nombre, apellido, email, password, telefono,
-                        "REG-00000", Especialidad.MEDICINA_GENERAL, "Consultorio no asignado"
+                        registro.isEmpty() ? "REG-" + id : registro,
+                        esp,
+                        consultorio.isEmpty() ? "Consultorio no asignado" : consultorio
                 );
                 medicoDAO.guardar(medico);
+
             } else if ("ADMINISTRADOR".equals(rolSeleccionado)) {
                 Administrador administrador = new Administrador(
                         id, nombre, apellido, email, password, telefono,
@@ -188,7 +256,7 @@ public class RegistroController {
 
     @FXML
     private void handleVolverLogin() throws IOException {
-        ViewManager.showView("/co/edu/upc/citasmedicas/fxml/login.fxml", "Iniciar Sesión - Sistema EPS");
+        ViewManager.showView("/co/edu/upc/citasmedicas/fxml/login.fxml", "Iniciar Sesion - Sistema EPS");
     }
 
     private void limpiarCampos() {
@@ -200,12 +268,19 @@ public class RegistroController {
         confirmarTelefonoField.setText("");
         rolComboBox.setValue(null);
         codigoAdminField.setText("");
+        numeroDocField.setText("");
+        fechaNacField.setValue(null);
+        direccionField.setText("");
+        epsField.setText("");
+        registroMedicoField.setText("");
+        consultorioField.setText("");
         limpiarEstilos();
     }
 
     private void limpiarEstilos() {
         for (var campo : List.of(nombreField, apellidoField, emailField, passwordField,
-                telefonoField, confirmarTelefonoField, codigoAdminField)) {
+                passwordVisibleField, telefonoField, confirmarTelefonoField, codigoAdminField,
+                numeroDocField, direccionField, epsField, registroMedicoField, consultorioField)) {
             limpiarEstiloCampo(campo);
         }
     }

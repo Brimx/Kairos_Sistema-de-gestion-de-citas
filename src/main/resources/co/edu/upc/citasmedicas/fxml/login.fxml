@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.PasswordField?>
@@ -16,7 +18,13 @@
 
     <Label text="Iniciar Sesion" styleClass="title-label"/>
     <TextField fx:id="emailField" promptText="Email" styleClass="input-field"/>
-    <PasswordField fx:id="passwordField" promptText="Contrasena" styleClass="input-field"/>
+    <HBox spacing="0" maxWidth="Infinity" styleClass="password-wrapper">
+        <StackPane HBox.hgrow="ALWAYS" maxWidth="Infinity">
+            <PasswordField fx:id="passwordField" promptText="Contrasena" styleClass="input-field-pwd" maxWidth="Infinity"/>
+            <TextField fx:id="passwordVisibleField" promptText="Contrasena" styleClass="input-field-pwd" visible="false" managed="false" maxWidth="Infinity"/>
+        </StackPane>
+        <Button fx:id="togglePasswordBtn" text="👁" styleClass="toggle-password-btn" onAction="#togglePasswordVisibility"/>
+    </HBox>
     <Button text="Ingresar" onAction="#handleLogin" styleClass="login-button"/>
     <Button text="Crear cuenta (Registro)" onAction="#handleIrRegistro" styleClass="secondary-button"/>
     <Label fx:id="errorLabel" wrapText="true" maxWidth="300.0" styleClass="helper-label"/>

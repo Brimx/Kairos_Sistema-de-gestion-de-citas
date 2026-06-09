@@ -15,6 +15,7 @@
             <Region HBox.hgrow="ALWAYS"/>
             <Label fx:id="lblContador" styleClass="header-subtitle"/>
             <Label text="PACIENTE" styleClass="header-role"/>
+            <Button text="Mis datos" onAction="#handleModificarMisDatos" styleClass="btn-ghost"/>
             <Button text="Cerrar Sesion" onAction="#handleCerrarSesion" styleClass="btn-logout"/>
         </HBox>
     </top>
@@ -26,6 +27,12 @@
                 <VBox spacing="12" styleClass="form-container">
                     <Label text="Agendar nueva cita" styleClass="section-title"/>
 
+                    <Label text="Categoria:" styleClass="field-label"/>
+                    <ComboBox fx:id="cbCategoria" maxWidth="Infinity" promptText="Selecciona categoria"/>
+
+                    <Label text="Servicio:" styleClass="field-label"/>
+                    <ComboBox fx:id="cbServicio" maxWidth="Infinity" promptText="Selecciona servicio"/>
+
                     <Label text="Medico:" styleClass="field-label"/>
                     <ComboBox fx:id="cbMedico" maxWidth="Infinity" promptText="Selecciona medico"/>
 
@@ -35,13 +42,14 @@
                     <Label text="Hora:" styleClass="field-label"/>
                     <ComboBox fx:id="cbHora" maxWidth="Infinity"/>
 
-                    <Label text="Tipo de cita:" styleClass="field-label"/>
+                    <Label text="Modalidad:" styleClass="field-label"/>
                     <ComboBox fx:id="cbTipo" maxWidth="Infinity"/>
 
                     <Label text="Motivo de consulta:" styleClass="field-label"/>
                     <TextField fx:id="txtMotivo" promptText="Describe tu motivo (opcional)" styleClass="input-height" maxWidth="Infinity"/>
 
                     <Button text="Agendar cita" onAction="#handleAgendarCita" styleClass="btn-agendar"/>
+                    <Button text="Mis datos" onAction="#handleModificarMisDatos" styleClass="btn-primary" maxWidth="Infinity" prefHeight="36"/>
 
                     <Label fx:id="lblMensaje" text="" wrapText="true" styleClass="feedback-ok"/>
                 </VBox>
@@ -56,11 +64,12 @@
                             <TextField fx:id="searchCitas" promptText="Buscar citas..." styleClass="input-small" maxWidth="Infinity"/>
                             <TableView fx:id="tablaCitas" VBox.vgrow="ALWAYS">
                                 <columns>
-                                    <TableColumn fx:id="colFecha"  text="Fecha"   prefWidth="100"/>
-                                    <TableColumn fx:id="colMedico" text="Medico"  prefWidth="150"/>
-                                    <TableColumn fx:id="colHora"   text="Hora"    prefWidth="70"/>
-                                    <TableColumn fx:id="colTipo"   text="Tipo"    prefWidth="90"/>
-                                    <TableColumn fx:id="colEstado" text="Estado"  prefWidth="100"/>
+                                    <TableColumn fx:id="colFecha"    text="Fecha"    prefWidth="100"/>
+                                    <TableColumn fx:id="colMedico"   text="Medico"   prefWidth="150"/>
+                                    <TableColumn fx:id="colHora"     text="Hora"     prefWidth="70"/>
+                                    <TableColumn fx:id="colServicio" text="Servicio" prefWidth="140"/>
+                                    <TableColumn fx:id="colTipo"     text="Tipo"     prefWidth="90"/>
+                                    <TableColumn fx:id="colEstado"   text="Estado"   prefWidth="100"/>
                                 </columns>
                             </TableView>
                             <Button text="Cancelar cita seleccionada"

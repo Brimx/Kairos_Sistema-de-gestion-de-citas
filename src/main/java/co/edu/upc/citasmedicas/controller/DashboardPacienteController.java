@@ -3,6 +3,7 @@ package co.edu.upc.citasmedicas.controller;
 import co.edu.upc.citasmedicas.dao.MedicoDAO;
 import co.edu.upc.citasmedicas.dao.PacienteDAO;
 import co.edu.upc.citasmedicas.enums.EstadoCita;
+import co.edu.upc.citasmedicas.enums.ServicioCita;
 import co.edu.upc.citasmedicas.enums.TipoCita;
 import co.edu.upc.citasmedicas.model.Cita;
 import co.edu.upc.citasmedicas.model.Medico;
@@ -25,9 +26,11 @@ import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
@@ -35,7 +38,9 @@ import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
+import javafx.geometry.Insets;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -47,6 +52,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class DashboardPacienteController {
 
@@ -56,10 +62,13 @@ public class DashboardPacienteController {
     @FXML private TableColumn<Cita, String> colFecha;
     @FXML private TableColumn<Cita, String> colMedico;
     @FXML private TableColumn<Cita, String> colHora;
+    @FXML private TableColumn<Cita, String> colServicio;
     @FXML private TableColumn<Cita, String> colTipo;
     @FXML private TableColumn<Cita, String> colEstado;
     @FXML private TextField searchCitas;
 
+    @FXML private ComboBox<String> cbCategoria;
+    @FXML private ComboBox<String> cbServicio;
     @FXML private ComboBox<String> cbMedico;
     @FXML private DatePicker dateFecha;
     @FXML private ComboBox<String> cbHora;
@@ -77,6 +86,7 @@ public class DashboardPacienteController {
     private final PacienteDAO pacienteDAO = new PacienteDAO();
     private final Map<String, String> mapaIdsMedicos = new LinkedHashMap<>();
     private CalendarView calendarView;
+    private CalendarSource calendarSource;
 
     @FXML
     public void initialize() {
@@ -87,16 +97,40 @@ public class DashboardPacienteController {
         colMedico.setCellValueFactory(d -> new SimpleStringProperty(
                 "Dr. " + d.getValue().getMedico().getNombre() + " " + d.getValue().getMedico().getApellido()));
         colHora.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getHoraInicio().toString()));
-        colTipo.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTipo().name()));
+        colServicio.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getServicio().getNombre()));
+        colTipo.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTipo().getNombre()));
         colEstado.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getEstado().name()));
 
-        cbTipo.setItems(FXCollections.observableArrayList("PRESENCIAL", "VIRTUAL"));
-        cbTipo.setValue("PRESENCIAL");
+        cbTipo.setItems(FXCollections.observableArrayList(
+                java.util.Arrays.stream(TipoCita.values()).map(TipoCita::getNombre).collect(Collectors.toList())));
+        cbTipo.setValue("Presencial");
+
         cbHora.setItems(FXCollections.observableArrayList(
                 "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
                 "11:00", "11:30", "14:00", "14:30", "15:00", "15:30",
                 "16:00", "16:30", "17:00"
         ));
+
+        cbCategoria.setItems(FXCollections.observableArrayList(ServicioCita.grupos()));
+        cbCategoria.valueProperty().addListener((obs, old, grupo) -> {
+            if (grupo != null) {
+                List<String> servicios = ServicioCita.porGrupo(grupo).stream()
+                        .map(ServicioCita::getNombre).collect(Collectors.toList());
+                cbServicio.setItems(FXCollections.observableArrayList(servicios));
+                cbServicio.setValue(null);
+                cbMedico.setItems(FXCollections.observableArrayList());
+                cbMedico.setValue(null);
+            }
+        });
+
+        cbServicio.valueProperty().addListener((obs, old, servicioNombre) -> {
+            if (servicioNombre != null) {
+                ServicioCita serv = ServicioCita.valueOf(servicioNombre.toUpperCase().replace(' ', '_')
+                        .replace('-', '_').replace('/', '_'));
+                if (serv == null) return;
+                filtrarMedicosPorEspecialidad(serv.getEspecialidadRequerida());
+            }
+        });
 
         tablaCitas.setPlaceholder(new Label("No tienes citas agendadas"));
 
@@ -113,7 +147,8 @@ public class DashboardPacienteController {
                     || cita.getMedico().getApellido().toLowerCase().contains(filtro)
                     || cita.getFecha().toString().contains(filtro)
                     || cita.getEstado().name().toLowerCase().contains(filtro)
-                    || cita.getTipo().name().toLowerCase().contains(filtro)
+                    || cita.getServicio().getNombre().toLowerCase().contains(filtro)
+                    || cita.getTipo().getNombre().toLowerCase().contains(filtro)
                     || cita.getMotivo().toLowerCase().contains(filtro);
             });
             actualizarContador();
@@ -124,6 +159,24 @@ public class DashboardPacienteController {
         cargarMedicos();
         cargarMisCitas();
         aplicarColorFilas(tablaCitas);
+    }
+
+    private void filtrarMedicosPorEspecialidad(co.edu.upc.citasmedicas.enums.Especialidad esp) {
+        cbMedico.setItems(FXCollections.observableArrayList());
+        mapaIdsMedicos.clear();
+        try {
+            List<Medico> medicos = medicoDAO.obtenerTodos().stream()
+                    .filter(m -> m.getEspecialidad() == esp)
+                    .toList();
+            for (Medico medico : medicos) {
+                String etiqueta = medico.getNombre() + " " + medico.getApellido()
+                        + " (" + medico.getEspecialidad().getNombre() + ")";
+                mapaIdsMedicos.put(etiqueta, medico.getId());
+            }
+            cbMedico.setItems(FXCollections.observableArrayList(mapaIdsMedicos.keySet()));
+        } catch (RuntimeException exception) {
+            mostrarError(lblMensaje, "Error al cargar medicos.");
+        }
     }
 
     private void inicializarCalendario() {
@@ -139,9 +192,9 @@ public class DashboardPacienteController {
         completadas.setStyle(Style.STYLE3);
         canceladas.setStyle(Style.STYLE4);
 
-        CalendarSource source = new CalendarSource("Mis citas");
-        source.getCalendars().addAll(pendientes, confirmadas, completadas, canceladas);
-        calendarView.getCalendarSources().add(source);
+        calendarSource = new CalendarSource("Mis citas");
+        calendarSource.getCalendars().addAll(pendientes, confirmadas, completadas, canceladas);
+        calendarView.getCalendarSources().setAll(calendarSource);
 
         calendarView.setRequestedTime(LocalTime.now());
 
@@ -166,15 +219,14 @@ public class DashboardPacienteController {
     }
 
     private void cargarCalendario() {
-        CalendarSource source = calendarView.getCalendarSources().get(0);
-        source.getCalendars().forEach(cal -> cal.clear());
-
-        Calendar<?> pendientes = source.getCalendars().get(0);
-        Calendar<?> confirmadas = source.getCalendars().get(1);
-        Calendar<?> completadas = source.getCalendars().get(2);
-        Calendar<?> canceladas = source.getCalendars().get(3);
-
         try {
+            calendarSource.getCalendars().forEach(cal -> cal.clear());
+
+            Calendar<?> pendientes = calendarSource.getCalendars().get(0);
+            Calendar<?> confirmadas = calendarSource.getCalendars().get(1);
+            Calendar<?> completadas = calendarSource.getCalendars().get(2);
+            Calendar<?> canceladas = calendarSource.getCalendars().get(3);
+
             Paciente paciente = (Paciente) Session.getUsuarioActual();
             List<Cita> citas = citaService.citasDelPaciente(paciente.getId());
             for (Cita c : citas) {
@@ -229,7 +281,6 @@ public class DashboardPacienteController {
                         + " (" + medico.getEspecialidad().getNombre() + ")";
                 mapaIdsMedicos.put(etiqueta, medico.getId());
             }
-            cbMedico.setItems(FXCollections.observableArrayList(mapaIdsMedicos.keySet()));
         } catch (RuntimeException exception) {
             mostrarError(lblMensaje, "Error al cargar medicos.");
         }
@@ -254,7 +305,7 @@ public class DashboardPacienteController {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private void conectarTooltips() {
-        for (TableColumn col : new TableColumn[]{colFecha, colMedico, colHora, colTipo, colEstado}) {
+        for (TableColumn col : new TableColumn[]{colFecha, colMedico, colHora, colServicio, colTipo, colEstado}) {
             col.setCellFactory(tc -> new TableCell() {
                 @Override
                 protected void updateItem(Object item, boolean empty) {
@@ -270,18 +321,23 @@ public class DashboardPacienteController {
     @FXML
     private void handleAgendarCita() {
         lblMensaje.setText("");
+        String servicioNombre = cbServicio.getValue();
         String medicoKey = cbMedico.getValue();
         LocalDate fecha = dateFecha.getValue();
         String hora = cbHora.getValue();
-        String tipo = cbTipo.getValue();
+        String tipoNombre = cbTipo.getValue();
         String motivo = txtMotivo.getText() == null ? "" : txtMotivo.getText().trim();
 
-        if (medicoKey == null || fecha == null || hora == null || tipo == null) {
-            mostrarError(lblMensaje, "Completa medico, fecha y hora.");
+        if (servicioNombre == null || medicoKey == null || fecha == null || hora == null || tipoNombre == null) {
+            mostrarError(lblMensaje, "Completa servicio, medico, fecha y hora.");
             return;
         }
 
         try {
+            String servicioEnum = servicioNombre.toUpperCase().replace(' ', '_')
+                    .replace('-', '_').replace('/', '_');
+            ServicioCita servicio = ServicioCita.valueOf(servicioEnum);
+
             LocalTime horaInicio = LocalTime.parse(hora);
             String medicoId = mapaIdsMedicos.get(medicoKey);
             Paciente paciente = pacienteDAO.buscarPorId(Session.getUsuarioActual().getId());
@@ -292,14 +348,18 @@ public class DashboardPacienteController {
                 return;
             }
 
+            String tipoEnum = tipoNombre.toUpperCase().replace(' ', '_')
+                    .replace('-', '_').replace('/', '_');
+            TipoCita tipo = TipoCita.valueOf(tipoEnum);
+
             Cita cita = new Cita(
                     UUID.randomUUID().toString(),
                     paciente,
                     medico,
-                    medico.getEspecialidad(),
+                    servicio,
                     fecha,
                     horaInicio,
-                    TipoCita.valueOf(tipo),
+                    tipo,
                     motivo.isBlank() ? "Consulta general" : motivo
             );
             citaService.agendarCita(cita);
@@ -339,17 +399,84 @@ public class DashboardPacienteController {
     }
 
     @FXML
+    private void handleModificarMisDatos() {
+        Paciente paciente = (Paciente) Session.getUsuarioActual();
+
+        Dialog<Paciente> dialog = new Dialog<>();
+        dialog.setTitle("Mis datos");
+        dialog.setHeaderText("Modifica tus datos personales");
+
+        ButtonType btnGuardar = new ButtonType("Guardar cambios", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(16));
+
+        TextField nombre = new TextField(paciente.getNombre());
+        TextField apellido = new TextField(paciente.getApellido());
+        TextField email = new TextField(paciente.getEmail());
+        TextField telefono = new TextField(paciente.getTelefono());
+        TextField tipoDoc = new TextField(paciente.getTipoDocumento());
+        TextField numDoc = new TextField(paciente.getNumeroDocumento());
+        DatePicker fechaNac = new DatePicker(paciente.getFechaNacimiento());
+        TextField direccion = new TextField(paciente.getDireccion());
+        TextField eps = new TextField(paciente.getEps());
+
+        grid.addRow(0, new Label("Nombre:"), nombre, new Label("Apellido:"), apellido);
+        grid.addRow(1, new Label("Email:"), email, new Label("Telefono:"), telefono);
+        grid.addRow(2, new Label("Tipo doc:"), tipoDoc, new Label("Num doc:"), numDoc);
+        grid.addRow(3, new Label("Fecha nac:"), fechaNac, new Label("Direccion:"), direccion);
+        grid.addRow(4, new Label("EPS:"), eps);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == btnGuardar) {
+                try {
+                    return new Paciente(
+                            paciente.getId(),
+                            nombre.getText().trim(), apellido.getText().trim(),
+                            email.getText().trim(), paciente.getPassword(),
+                            telefono.getText().trim(),
+                            tipoDoc.getText().trim(), numDoc.getText().trim(),
+                            fechaNac.getValue(), direccion.getText().trim(), eps.getText().trim()
+                    );
+                } catch (Exception e) {
+                    mostrarError(lblMensaje, "Datos invalidos: " + e.getMessage());
+                    return null;
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(p -> {
+            try {
+                pacienteDAO.actualizarTodo(p);
+                Session.setUsuarioActual(p);
+                lblBienvenida.setText("Bienvenido, " + p.getNombre() + " " + p.getApellido());
+                mostrarExito(lblMensaje, "Datos actualizados correctamente.");
+            } catch (IllegalArgumentException | IllegalStateException exception) {
+                mostrarError(lblMensaje, exception.getMessage());
+            }
+        });
+    }
+
+    @FXML
     private void handleCerrarSesion() throws IOException {
         Session.cerrar();
         ViewManager.showView("/co/edu/upc/citasmedicas/fxml/login.fxml", "Sistema de Citas Medicas EPS");
     }
 
     private void limpiarFormulario() {
+        cbCategoria.setValue(null);
+        cbServicio.setValue(null);
         cbMedico.setValue(null);
         dateFecha.setValue(null);
         cbHora.setValue(null);
         txtMotivo.clear();
-        cbTipo.setValue("PRESENCIAL");
+        cbTipo.setValue("Presencial");
     }
 
     private void mostrarExito(Label label, String mensaje) {

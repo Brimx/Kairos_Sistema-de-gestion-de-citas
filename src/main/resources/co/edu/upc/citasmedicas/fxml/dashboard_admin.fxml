@@ -29,20 +29,23 @@
 
                     <TextField fx:id="searchPacientes" promptText="Buscar pacientes..." styleClass="input-small" maxWidth="Infinity"/>
 
-                    <TableView fx:id="tablaPacientes" VBox.vgrow="ALWAYS" prefHeight="300">
+                    <TableView fx:id="tablaPacientes" VBox.vgrow="ALWAYS" prefHeight="280">
                         <columns>
-                            <TableColumn fx:id="colPacNombre" text="Nombre"   prefWidth="200"/>
-                            <TableColumn fx:id="colPacEmail"  text="Email"    prefWidth="220"/>
-                            <TableColumn fx:id="colPacDoc"    text="Documento" prefWidth="130"/>
-                            <TableColumn fx:id="colPacTel"    text="Telefono" prefWidth="130"/>
+                            <TableColumn fx:id="colPacNombre" text="Nombre"     prefWidth="180"/>
+                            <TableColumn fx:id="colPacEmail"  text="Email"      prefWidth="180"/>
+                            <TableColumn fx:id="colPacTipoDoc" text="Tipo Doc" prefWidth="80"/>
+                            <TableColumn fx:id="colPacDoc"    text="Documento"  prefWidth="110"/>
+                            <TableColumn fx:id="colPacTel"    text="Telefono"   prefWidth="110"/>
+                            <TableColumn fx:id="colPacEps"    text="EPS"        prefWidth="120"/>
                         </columns>
                     </TableView>
 
                     <HBox spacing="10" alignment="CENTER_LEFT">
-                        <TextField fx:id="txtEditNombre" promptText="Nombre" prefWidth="200" styleClass="input-small"/>
-                        <TextField fx:id="txtEditTel"    promptText="Telefono" prefWidth="150" styleClass="input-small"/>
-                        <Button text="Guardar cambios" onAction="#handleGuardarPaciente" styleClass="btn-primary" prefHeight="34"/>
-                        <Button text="Desactivar paciente" onAction="#handleDesactivarPaciente" styleClass="btn-danger" prefHeight="34"/>
+                        <Button text="Modificar paciente" onAction="#handleModificarPaciente" styleClass="btn-primary" prefHeight="34"/>
+                        <Button text="Desactivar" onAction="#handleDesactivarPaciente" styleClass="btn-danger" prefHeight="34"/>
+                    </HBox>
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Button text="+ Nuevo paciente" onAction="#handleNuevoPaciente" styleClass="btn-success" prefHeight="34"/>
                     </HBox>
                     <Label fx:id="lblMensaje" text="" styleClass="feedback-ok"/>
                 </VBox>
@@ -58,13 +61,20 @@
                                 onAction="#irARegistroMedico" styleClass="btn-primary"/>
                     </HBox>
                     <TextField fx:id="searchMedicos" promptText="Buscar medicos..." styleClass="input-small" maxWidth="Infinity"/>
-                    <TableView fx:id="tablaMedicos" VBox.vgrow="ALWAYS">
+                    <TableView fx:id="tablaMedicos" VBox.vgrow="ALWAYS" prefHeight="280">
                         <columns>
-                            <TableColumn fx:id="colMedNombre" text="Nombre"       prefWidth="220"/>
-                            <TableColumn fx:id="colMedEmail"  text="Email"        prefWidth="230"/>
-                            <TableColumn fx:id="colMedEsp"    text="Especialidad" prefWidth="200"/>
+                            <TableColumn fx:id="colMedNombre" text="Nombre"       prefWidth="160"/>
+                            <TableColumn fx:id="colMedEmail"  text="Email"        prefWidth="160"/>
+                            <TableColumn fx:id="colMedEsp"    text="Especialidad" prefWidth="140"/>
+                            <TableColumn fx:id="colMedRegistro" text="Registro"  prefWidth="100"/>
+                            <TableColumn fx:id="colMedTel"    text="Telefono"     prefWidth="110"/>
+                            <TableColumn fx:id="colMedCons"   text="Consultorio"  prefWidth="110"/>
                         </columns>
                     </TableView>
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Button text="Modificar medico" onAction="#handleModificarMedico" styleClass="btn-primary" prefHeight="34"/>
+                        <Button text="Eliminar medico" onAction="#handleEliminarMedico" styleClass="btn-danger" prefHeight="34"/>
+                    </HBox>
                     <Label fx:id="lblMensajeMedicos" text="" styleClass="feedback-ok"/>
                 </VBox>
             </Tab>
@@ -76,14 +86,19 @@
                     <TextField fx:id="searchCitas" promptText="Buscar citas..." styleClass="input-small" maxWidth="Infinity"/>
                     <TableView fx:id="tablaCitas" VBox.vgrow="ALWAYS">
                         <columns>
-                            <TableColumn fx:id="colCitaPac"   text="Paciente"  prefWidth="170"/>
-                            <TableColumn fx:id="colCitaMed"   text="Medico"    prefWidth="170"/>
-                            <TableColumn fx:id="colCitaFecha" text="Fecha"     prefWidth="110"/>
-                            <TableColumn fx:id="colCitaHora"  text="Hora"      prefWidth="80"/>
-                            <TableColumn fx:id="colCitaEstado" text="Estado"   prefWidth="110"/>
+                            <TableColumn fx:id="colCitaPac"     text="Paciente"  prefWidth="150"/>
+                            <TableColumn fx:id="colCitaMed"     text="Medico"    prefWidth="150"/>
+                            <TableColumn fx:id="colCitaServicio" text="Servicio" prefWidth="140"/>
+                            <TableColumn fx:id="colCitaFecha"   text="Fecha"     prefWidth="100"/>
+                            <TableColumn fx:id="colCitaHora"    text="Hora"      prefWidth="70"/>
+                            <TableColumn fx:id="colCitaTipo"    text="Tipo"      prefWidth="90"/>
+                            <TableColumn fx:id="colCitaEstado"  text="Estado"   prefWidth="100"/>
+                            <TableColumn fx:id="colCitaMotivo"  text="Motivo"   prefWidth="150"/>
                         </columns>
                     </TableView>
                     <HBox spacing="10">
+                        <Button text="Agregar cita" onAction="#handleAgregarCita" styleClass="btn-primary"/>
+                        <Button text="Modificar cita" onAction="#handleModificarCita" styleClass="btn-primary"/>
                         <Button text="Confirmar cita" onAction="#handleConfirmarCita" styleClass="btn-success"/>
                         <Button text="Cancelar cita" onAction="#handleCancelarCita" styleClass="btn-danger"/>
                     </HBox>

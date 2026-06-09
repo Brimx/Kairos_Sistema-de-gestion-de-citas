@@ -95,6 +95,48 @@ public class PacienteDAO {
         }
     }
 
+    public void actualizarTodo(Paciente paciente) {
+        String sqlUsuario = """
+                UPDATE usuarios
+                SET nombre = ?, apellido = ?, email = ?, telefono = ?
+                WHERE id = ? AND rol = 'PACIENTE' AND activo = 1
+                """;
+        String sqlPaciente = """
+                UPDATE pacientes
+                SET tipo_documento = ?, numero_documento = ?, fecha_nacimiento = ?, direccion = ?, eps = ?
+                WHERE usuario_id = ?
+                """;
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement stmtUsuario = connection.prepareStatement(sqlUsuario);
+             PreparedStatement stmtPaciente = connection.prepareStatement(sqlPaciente)) {
+
+            connection.setAutoCommit(false);
+
+            stmtUsuario.setString(1, paciente.getNombre());
+            stmtUsuario.setString(2, paciente.getApellido());
+            stmtUsuario.setString(3, paciente.getEmail());
+            stmtUsuario.setString(4, paciente.getTelefono());
+            stmtUsuario.setString(5, paciente.getId());
+
+            if (stmtUsuario.executeUpdate() == 0) {
+                throw new IllegalArgumentException("No se encontro un paciente activo con ese id");
+            }
+
+            stmtPaciente.setString(1, paciente.getTipoDocumento());
+            stmtPaciente.setString(2, paciente.getNumeroDocumento());
+            stmtPaciente.setString(3, paciente.getFechaNacimiento().toString());
+            stmtPaciente.setString(4, paciente.getDireccion());
+            stmtPaciente.setString(5, paciente.getEps());
+            stmtPaciente.setString(6, paciente.getId());
+            stmtPaciente.executeUpdate();
+
+            connection.commit();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudo actualizar el paciente", exception);
+        }
+    }
+
     public void desactivar(String id) {
         String sql = "UPDATE usuarios SET activo = 0 WHERE id = ? AND rol = 'PACIENTE'";
 

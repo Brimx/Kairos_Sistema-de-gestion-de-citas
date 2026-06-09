@@ -80,6 +80,59 @@ public class MedicoDAO {
         return medicos;
     }
 
+    public void actualizar(Medico medico) {
+        String sqlUsuario = """
+                UPDATE usuarios SET nombre = ?, apellido = ?, telefono = ?
+                WHERE id = ? AND rol = 'MEDICO' AND activo = 1
+                """;
+        String sqlMedico = """
+                UPDATE medicos SET registro_medico = ?, especialidad = ?, consultorio = ?
+                WHERE usuario_id = ?
+                """;
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement stmtUsuario = connection.prepareStatement(sqlUsuario);
+             PreparedStatement stmtMedico = connection.prepareStatement(sqlMedico)) {
+
+            connection.setAutoCommit(false);
+
+            stmtUsuario.setString(1, medico.getNombre());
+            stmtUsuario.setString(2, medico.getApellido());
+            stmtUsuario.setString(3, medico.getTelefono());
+            stmtUsuario.setString(4, medico.getId());
+
+            if (stmtUsuario.executeUpdate() == 0) {
+                throw new IllegalArgumentException("No se encontro un medico activo con ese id");
+            }
+
+            stmtMedico.setString(1, medico.getRegistroMedico());
+            stmtMedico.setString(2, medico.getEspecialidad().name());
+            stmtMedico.setString(3, medico.getConsultorio());
+            stmtMedico.setString(4, medico.getId());
+            stmtMedico.executeUpdate();
+
+            connection.commit();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudo actualizar el medico", exception);
+        }
+    }
+
+    public void eliminar(String id) {
+        String sql = "UPDATE usuarios SET activo = 0 WHERE id = ? AND rol = 'MEDICO'";
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, id);
+
+            if (statement.executeUpdate() == 0) {
+                throw new IllegalArgumentException("No se encontro un medico con ese id");
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudo eliminar el medico", exception);
+        }
+    }
+
     public Medico buscarPorId(String id) {
         String sql = """
                 SELECT u.id, u.nombre, u.apellido, u.email, u.password, u.telefono,

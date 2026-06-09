@@ -5,7 +5,7 @@
 
 <BorderPane xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="co.edu.upc.citasmedicas.controller.DashboardMedicoController"
-            styleClass="bg-default" prefWidth="860" prefHeight="580"
+            styleClass="bg-default" prefWidth="1100" prefHeight="580"
             stylesheets="@../css/styles.css">
 
     <top>
@@ -18,6 +18,7 @@
             <Region HBox.hgrow="ALWAYS"/>
             <Label fx:id="lblContador" styleClass="header-subtitle"/>
             <Button text="Actualizar" onAction="#handleActualizar" styleClass="btn-ghost"/>
+            <Button text="Mis datos" onAction="#handleModificarMisDatos" styleClass="btn-ghost"/>
             <Button text="Cerrar Sesion" onAction="#handleCerrarSesion" styleClass="btn-logout"/>
         </HBox>
     </top>
@@ -34,15 +35,21 @@
                         <TextField fx:id="searchCitas" promptText="Buscar citas..." styleClass="input-small" maxWidth="Infinity"/>
                         <TableView fx:id="tablaAgenda" VBox.vgrow="ALWAYS">
                             <columns>
-                                <TableColumn fx:id="colPaciente" text="Paciente"   prefWidth="200"/>
-                                <TableColumn fx:id="colFecha"    text="Fecha"      prefWidth="100"/>
-                                <TableColumn fx:id="colHora"     text="Hora"       prefWidth="70"/>
-                                <TableColumn fx:id="colTipo"     text="Tipo"       prefWidth="90"/>
-                                <TableColumn fx:id="colMotivo"   text="Motivo"     prefWidth="150"/>
-                                <TableColumn fx:id="colEstado"   text="Estado"     prefWidth="100"/>
+                                <TableColumn fx:id="colPaciente"      text="Paciente"     prefWidth="150"/>
+                                <TableColumn fx:id="colTipoDocPac"    text="Tipo Doc"     prefWidth="70"/>
+                                <TableColumn fx:id="colDocPac"        text="Documento"    prefWidth="100"/>
+                                <TableColumn fx:id="colEmailPac"      text="Email"        prefWidth="160"/>
+                                <TableColumn fx:id="colDireccionPac"  text="Direccion"    prefWidth="130"/>
+                                <TableColumn fx:id="colFecha"         text="Fecha"        prefWidth="90"/>
+                                <TableColumn fx:id="colHora"          text="Hora"         prefWidth="65"/>
+                                <TableColumn fx:id="colServicio"      text="Servicio"     prefWidth="130"/>
+                                <TableColumn fx:id="colTipo"          text="Tipo"         prefWidth="90"/>
+                                <TableColumn fx:id="colMotivo"        text="Motivo"       prefWidth="130"/>
+                                <TableColumn fx:id="colEstado"        text="Estado"       prefWidth="90"/>
                             </columns>
                         </TableView>
                         <HBox spacing="10">
+                            <Button text="Reprogramar cita" onAction="#handleReprogramarCita" styleClass="btn-primary" prefHeight="36"/>
                             <Button text="Marcar como atendido" onAction="#handleAtender" styleClass="btn-success" prefHeight="36"/>
                         </HBox>
                         <Label fx:id="lblMensaje" text="" styleClass="feedback-ok"/>

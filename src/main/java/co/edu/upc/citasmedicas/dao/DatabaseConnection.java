@@ -85,6 +85,7 @@ public class DatabaseConnection {
                     paciente_id TEXT NOT NULL,
                     medico_id TEXT NOT NULL,
                     especialidad TEXT NOT NULL,
+                    servicio TEXT NOT NULL DEFAULT 'MEDICINA_GENERAL',
                     fecha TEXT NOT NULL,
                     hora_inicio TEXT NOT NULL,
                     estado TEXT NOT NULL,
@@ -94,6 +95,11 @@ public class DatabaseConnection {
                     FOREIGN KEY (medico_id) REFERENCES medicos(usuario_id)
                 )
                 """);
+
+        try {
+            statement.execute("ALTER TABLE citas ADD COLUMN servicio TEXT NOT NULL DEFAULT 'MEDICINA_GENERAL'");
+        } catch (Exception ignored) {
+        }
     }
 
     private static void insertarDatosDemo(Connection connection) throws SQLException {
@@ -121,17 +127,17 @@ public class DatabaseConnection {
 
         ejecutarInsert(connection, """
                 INSERT OR IGNORE INTO citas
-                (id, paciente_id, medico_id, especialidad, fecha, hora_inicio, estado, tipo, motivo)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, "cit-001", "pac-001", "med-001", "MEDICINA_GENERAL", "2026-05-28", "09:00",
-                "CONFIRMADA", "PRESENCIAL", "Control general");
+                (id, paciente_id, medico_id, especialidad, servicio, fecha, hora_inicio, estado, tipo, motivo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, "cit-001", "pac-001", "med-001", "MEDICINA_GENERAL", "MEDICINA_GENERAL",
+                "2026-05-28", "09:00", "CONFIRMADA", "PRESENCIAL", "Control general");
 
         ejecutarInsert(connection, """
                 INSERT OR IGNORE INTO citas
-                (id, paciente_id, medico_id, especialidad, fecha, hora_inicio, estado, tipo, motivo)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, "cit-002", "pac-001", "med-001", "MEDICINA_GENERAL", "2026-06-02", "10:30",
-                "PENDIENTE", "VIRTUAL", "Revision de resultados");
+                (id, paciente_id, medico_id, especialidad, servicio, fecha, hora_inicio, estado, tipo, motivo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, "cit-002", "pac-001", "med-001", "MEDICINA_GENERAL", "MEDICINA_GENERAL",
+                "2026-06-02", "10:30", "PENDIENTE", "VIRTUAL", "Revision de resultados");
     }
 
     private static void insertarUsuario(Connection connection, String id, String nombre, String apellido,

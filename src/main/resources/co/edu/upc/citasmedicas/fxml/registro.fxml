@@ -1,45 +1,77 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.geometry.Insets?>
 
-<VBox alignment="CENTER" spacing="12.0" prefWidth="480.0" prefHeight="520.0"
-      xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="co.edu.upc.citasmedicas.controller.RegistroController"
-      stylesheets="@../css/styles.css" styleClass="login-container">
+<ScrollPane fitToWidth="true" fitToHeight="true"
+            xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="co.edu.upc.citasmedicas.controller.RegistroController"
+            stylesheets="@../css/styles.css" styleClass="bg-default">
 
-    <padding>
-        <Insets top="24.0" right="24.0" bottom="24.0" left="24.0" />
-    </padding>
+    <VBox alignment="CENTER" spacing="12.0" prefWidth="480.0"
+          styleClass="login-container">
 
-    <Label text="Registro de Usuario" styleClass="title-label"/>
+        <padding>
+            <Insets top="24.0" right="24.0" bottom="24.0" left="24.0" />
+        </padding>
 
-    <VBox spacing="8.0" prefWidth="300.0">
-        <Label text="Datos personales" styleClass="section-title"/>
+        <Label text="Registro de Usuario" styleClass="title-label"/>
 
-        <TextField fx:id="nombreField" promptText="Nombre" styleClass="input-field"/>
-        <TextField fx:id="apellidoField" promptText="Apellido" styleClass="input-field"/>
-        <TextField fx:id="emailField" promptText="Email" styleClass="input-field"/>
-        <PasswordField fx:id="passwordField" promptText="Contraseña" styleClass="input-field"/>
-        <TextField fx:id="telefonoField" promptText="Teléfono" styleClass="input-field"/>
-        <TextField fx:id="confirmarTelefonoField" promptText="Confirmar teléfono" styleClass="input-field"/>
+        <VBox spacing="8.0" prefWidth="300.0">
+            <Label text="Datos personales" styleClass="section-title"/>
+
+            <TextField fx:id="nombreField" promptText="Nombre" styleClass="input-field"/>
+            <TextField fx:id="apellidoField" promptText="Apellido" styleClass="input-field"/>
+            <TextField fx:id="emailField" promptText="Email" styleClass="input-field"/>
+            <HBox spacing="0" maxWidth="Infinity" styleClass="password-wrapper">
+                <StackPane HBox.hgrow="ALWAYS" maxWidth="Infinity">
+                    <PasswordField fx:id="passwordField" promptText="Contraseña" styleClass="input-field-pwd" maxWidth="Infinity"/>
+                    <TextField fx:id="passwordVisibleField" promptText="Contraseña" styleClass="input-field-pwd" visible="false" managed="false" maxWidth="Infinity"/>
+                </StackPane>
+                <Button fx:id="togglePasswordBtn" text="👁" styleClass="toggle-password-btn" onAction="#togglePasswordVisibility"/>
+            </HBox>
+            <TextField fx:id="telefonoField" promptText="Teléfono" styleClass="input-field"/>
+            <TextField fx:id="confirmarTelefonoField" promptText="Confirmar teléfono" styleClass="input-field"/>
+        </VBox>
+
+        <VBox spacing="8.0" prefWidth="300.0" fx:id="documentoPanel">
+            <Label text="Documento de identidad" styleClass="section-title"/>
+            <HBox spacing="8">
+                <ComboBox fx:id="tipoDocCombo" promptText="Tipo documento" prefWidth="140" styleClass="input-field"/>
+                <TextField fx:id="numeroDocField" promptText="Número de documento" HBox.hgrow="ALWAYS" styleClass="input-field"/>
+            </HBox>
+            <DatePicker fx:id="fechaNacField" promptText="Fecha de nacimiento" maxWidth="Infinity" styleClass="input-field"/>
+            <TextField fx:id="direccionField" promptText="Dirección" styleClass="input-field"/>
+            <TextField fx:id="epsField" promptText="EPS" styleClass="input-field"/>
+        </VBox>
+
+        <VBox spacing="8.0" prefWidth="300.0" fx:id="medicoPanel" visible="false" managed="false">
+            <Label text="Datos del médico" styleClass="section-title"/>
+            <TextField fx:id="registroMedicoField" promptText="Registro médico" styleClass="input-field"/>
+            <ComboBox fx:id="especialidadCombo" promptText="Especialidad" styleClass="input-field"/>
+            <TextField fx:id="consultorioField" promptText="Consultorio" styleClass="input-field"/>
+        </VBox>
+
+        <VBox spacing="8.0" prefWidth="300.0">
+            <Label text="Tipo de usuario" styleClass="section-title"/>
+
+            <ComboBox fx:id="rolComboBox" promptText="Seleccionar rol" styleClass="input-field"/>
+
+            <TextField fx:id="codigoAdminField" promptText="Código de administrador (solo si es ADMIN)" styleClass="input-field"/>
+        </VBox>
+
+        <Button text="Registrar" onAction="#handleRegistrar" styleClass="login-button"/>
+        <Button text="Volver al Login" onAction="#handleVolverLogin" styleClass="secondary-button"/>
+
+        <Label fx:id="errorLabel" wrapText="true" maxWidth="350.0" styleClass="helper-label"/>
+        <Label fx:id="successLabel" wrapText="true" maxWidth="350.0" styleClass="success-label"/>
     </VBox>
-
-    <VBox spacing="8.0" prefWidth="300.0">
-        <Label text="Tipo de usuario" styleClass="section-title"/>
-
-        <ComboBox fx:id="rolComboBox" promptText="Seleccionar rol" styleClass="input-field"/>
-
-        <TextField fx:id="codigoAdminField" promptText="Código de administrador (solo si es ADMIN)" styleClass="input-field"/>
-    </VBox>
-
-    <Button text="Registrar" onAction="#handleRegistrar" styleClass="login-button"/>
-    <Button text="Volver al Login" onAction="#handleVolverLogin" styleClass="secondary-button"/>
-
-    <Label fx:id="errorLabel" wrapText="true" maxWidth="350.0" styleClass="helper-label"/>
-    <Label fx:id="successLabel" wrapText="true" maxWidth="350.0" styleClass="success-label"/>
-</VBox>
+</ScrollPane>

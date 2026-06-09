@@ -2,53 +2,43 @@ package co.edu.upc.citasmedicas.model;
 
 import co.edu.upc.citasmedicas.enums.Especialidad;
 import co.edu.upc.citasmedicas.enums.EstadoCita;
+import co.edu.upc.citasmedicas.enums.ServicioCita;
 import co.edu.upc.citasmedicas.enums.TipoCita;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-/**
- * Representa una cita médica en el sistema EPS.
- * Es la entidad central del proyecto: conecta Paciente con Medico.
- * Las citas NUNCA se borran físicamente, solo cambian de estado (borrado lógico).
- */
 public class Cita {
 
-    // --- Atributos ---
-    private String id;                      // UUID único de la cita
+    private String id;
     private Paciente paciente;
     private Medico medico;
     private Especialidad especialidad;
+    private ServicioCita servicio;
     private LocalDate fecha;
     private LocalTime horaInicio;
-    private LocalTime horaFin;              // Se calcula: horaInicio + 30 minutos
+    private LocalTime horaFin;
     private EstadoCita estado;
     private TipoCita tipo;
-    private String motivo;                  // Motivo de consulta escrito por el paciente
+    private String motivo;
 
-    private static final int DURACION_MINUTOS = 30; // Regla de negocio fija
+    private static final int DURACION_MINUTOS = 30;
 
-    // --- Constructor ---
     public Cita(String id, Paciente paciente, Medico medico,
-                Especialidad especialidad, LocalDate fecha,
+                ServicioCita servicio, LocalDate fecha,
                 LocalTime horaInicio, TipoCita tipo, String motivo) {
-
-        this.id           = id;
-        this.paciente     = paciente;
-        this.medico       = medico;
-        this.especialidad = especialidad;
-        this.fecha        = fecha;
-        this.horaInicio   = horaInicio;
-        this.horaFin      = horaInicio.plusMinutes(DURACION_MINUTOS); // Se calcula automático
-        this.tipo         = tipo;
-        this.motivo       = motivo;
-        this.estado       = EstadoCita.PENDIENTE; // Toda cita nace como PENDIENTE
+        this.id = id;
+        this.paciente = paciente;
+        this.medico = medico;
+        this.especialidad = servicio.getEspecialidadRequerida();
+        this.servicio = servicio;
+        this.fecha = fecha;
+        this.horaInicio = horaInicio;
+        this.horaFin = horaInicio.plusMinutes(DURACION_MINUTOS);
+        this.tipo = tipo;
+        this.motivo = motivo;
+        this.estado = EstadoCita.PENDIENTE;
     }
 
-    // --- Métodos de negocio ---
-
-    /**
-     * Confirma la cita. Solo puede confirmarse si está PENDIENTE.
-     */
     public boolean confirmar() {
         if (this.estado == EstadoCita.PENDIENTE) {
             this.estado = EstadoCita.CONFIRMADA;
@@ -57,9 +47,6 @@ public class Cita {
         return false;
     }
 
-    /**
-     * Cancela la cita. Solo puede cancelarse si está PENDIENTE o CONFIRMADA.
-     */
     public boolean cancelar() {
         if (this.estado == EstadoCita.PENDIENTE || this.estado == EstadoCita.CONFIRMADA) {
             this.estado = EstadoCita.CANCELADA;
@@ -68,9 +55,6 @@ public class Cita {
         return false;
     }
 
-    /**
-     * Marca la cita como completada. Solo si está CONFIRMADA.
-     */
     public boolean completar() {
         if (this.estado == EstadoCita.CONFIRMADA) {
             this.estado = EstadoCita.COMPLETADA;
@@ -79,9 +63,6 @@ public class Cita {
         return false;
     }
 
-    /**
-     * Retorna la duración fija de las citas (regla de negocio).
-     */
     public int getDuracionMinutos() {
         return DURACION_MINUTOS;
     }
@@ -92,6 +73,7 @@ public class Cita {
                 "id='" + id + '\'' +
                 ", paciente=" + paciente.getNombre() + " " + paciente.getApellido() +
                 ", medico=Dr. " + medico.getNombre() + " " + medico.getApellido() +
+                ", servicio=" + servicio.getNombre() +
                 ", especialidad=" + especialidad +
                 ", fecha=" + fecha +
                 ", hora=" + horaInicio + " - " + horaFin +
@@ -100,7 +82,6 @@ public class Cita {
                 '}';
     }
 
-    // --- Getters y Setters ---
     public String getId()                           { return id; }
     public void setId(String id)                    { this.id = id; }
 
@@ -112,6 +93,9 @@ public class Cita {
 
     public Especialidad getEspecialidad()           { return especialidad; }
     public void setEspecialidad(Especialidad esp)   { this.especialidad = esp; }
+
+    public ServicioCita getServicio()               { return servicio; }
+    public void setServicio(ServicioCita servicio)  { this.servicio = servicio; }
 
     public LocalDate getFecha()                     { return fecha; }
     public void setFecha(LocalDate fecha)           { this.fecha = fecha; }
