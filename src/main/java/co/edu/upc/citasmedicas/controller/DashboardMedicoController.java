@@ -381,7 +381,7 @@ public class DashboardMedicoController {
         colSlot.setPrefWidth(80);
         colSlot.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getSlotMinutos())));
 
-        tablaHorarios.getColumns().addAll(colDia, colInicio, colFin, colSlot);
+        tablaHorarios.getColumns().addAll(List.of(colDia, colInicio, colFin, colSlot));
 
         ObservableList<AgendaMedica> listaHorarios = FXCollections.observableArrayList();
         listaHorarios.setAll(agendaMedicaDAO.listarPorMedico(medico.getId()));
