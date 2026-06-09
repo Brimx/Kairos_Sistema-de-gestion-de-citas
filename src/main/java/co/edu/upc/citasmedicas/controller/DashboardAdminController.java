@@ -168,13 +168,21 @@ public class DashboardAdminController {
             mostrarError(lblMensajeCitas, "Selecciona una cita.");
             return;
         }
-        try {
-            citaService.confirmarCita(sel.getId());
-            mostrarExito(lblMensajeCitas, "Cita confirmada.");
-            cargarCitas();
-        } catch (IllegalArgumentException | IllegalStateException exception) {
-            mostrarError(lblMensajeCitas, exception.getMessage());
-        }
+        Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION,
+                "Confirmar cita de " + sel.getPaciente().getNombre() + " con "
+                + sel.getMedico().getNombre() + "?",
+                ButtonType.YES, ButtonType.NO);
+        dialogo.showAndWait().ifPresent(boton -> {
+            if (boton == ButtonType.YES) {
+                try {
+                    citaService.confirmarCita(sel.getId());
+                    mostrarExito(lblMensajeCitas, "Cita confirmada.");
+                    cargarCitas();
+                } catch (IllegalArgumentException | IllegalStateException exception) {
+                    mostrarError(lblMensajeCitas, exception.getMessage());
+                }
+            }
+        });
     }
 
     @FXML
@@ -184,13 +192,21 @@ public class DashboardAdminController {
             mostrarError(lblMensajeCitas, "Selecciona una cita.");
             return;
         }
-        try {
-            citaService.cancelarCita(sel.getId());
-            mostrarExito(lblMensajeCitas, "Cita cancelada.");
-            cargarCitas();
-        } catch (IllegalArgumentException | IllegalStateException exception) {
-            mostrarError(lblMensajeCitas, exception.getMessage());
-        }
+        Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION,
+                "Cancelar cita de " + sel.getPaciente().getNombre() + " con "
+                + sel.getMedico().getNombre() + "?",
+                ButtonType.YES, ButtonType.NO);
+        dialogo.showAndWait().ifPresent(boton -> {
+            if (boton == ButtonType.YES) {
+                try {
+                    citaService.cancelarCita(sel.getId());
+                    mostrarExito(lblMensajeCitas, "Cita cancelada.");
+                    cargarCitas();
+                } catch (IllegalArgumentException | IllegalStateException exception) {
+                    mostrarError(lblMensajeCitas, exception.getMessage());
+                }
+            }
+        });
     }
 
     private void mostrarExito(Label label, String mensaje) {
