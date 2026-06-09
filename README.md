@@ -31,14 +31,14 @@ El sistema gestiona el ciclo de vida completo de una cita médica: desde que el 
 ## Tecnologías utilizadas
 
 | Tecnología | Versión | Uso |
-|---|---|---|
+|---|---|---|---|
 | Java | 17+ | Lenguaje principal |
 | JavaFX | 21.0.2 | Interfaz gráfica de usuario |
 | FXML | — | Definición declarativa de vistas |
 | SQLite | — | Base de datos embebida |
 | Xerial SQLite JDBC | 3.45.2.0 | Conector Java ↔ SQLite |
+| CalendarFX | 11.12.7 | Componentes de calendario |
 | Maven | — | Gestión de dependencias y build |
-| NetBeans | — | IDE de desarrollo |
 
 ---
 
@@ -93,26 +93,33 @@ co.edu.upc.citasmedicas/
 │   ├── PacienteDAO.java
 │   ├── MedicoDAO.java
 │   ├── AdministradorDAO.java
-│   └── CitaDAO.java
+│   ├── CitaDAO.java
+│   ├── AgendaMedicaDAO.java      (horarios del médico)
+│   ├── BloqueoAgendaDAO.java     (bloqueos temporales)
+│   └── HistorialClinicoDAO.java  (historial por cita completada)
 │
 ├── enums/                     ← Constantes tipadas del dominio
 │   ├── Rol.java               (PACIENTE, MEDICO, ADMIN)
-│   ├── EstadoCita.java        (PENDIENTE, CONFIRMADA, COMPLETADA, CANCELADA)
-│   ├── Especialidad.java      (10 especialidades médicas)
-│   └── TipoCita.java          (PRESENCIAL, VIRTUAL)
+│   ├── EstadoCita.java        (PENDIENTE, CONFIRMADA, COMPLETADA, CANCELADA, NO_ASISTIO)
+│   ├── Especialidad.java      (17 especialidades médicas)
+│   ├── ServicioCita.java      (17 servicios con duración dinámica y grupo)
+│   ├── TipoCita.java          (PRESENCIAL, VIRTUAL)
+│   └── OrigenCita.java        (PACIENTE, CONTROL)
 │
 ├── model/                     ← Entidades del dominio
 │   ├── Usuario.java           (abstracta — base de todos los usuarios)
 │   ├── Paciente.java
 │   ├── Medico.java
 │   ├── Administrador.java
-│   ├── Cita.java              (entidad central — máquina de estados)
-│   ├── Turno.java             (sala de espera)
-│   └── RegistroHistorial.java (log de auditoría)
+│   ├── Cita.java              (entidad central — duración dinámica, origen, sobrecupo)
+│   ├── AgendaMedica.java      (horarios del médico por día de semana)
+│   ├── BloqueoAgenda.java     (bloqueos temporales por fecha)
+│   └── HistorialClinico.java  (diagnóstico, receta, remisión por cita)
 │
 ├── service/                   ← Reglas de negocio y validaciones
-│   ├── CitaService.java
-│   ├── PacienteService.java
+│   ├── CitaService.java       (agendar, sobrecupo, inasistencias, completar)
+│   ├── DisponibilidadService.java (cálculo de slots dinámicos)
+│   ├── InasistenciaService.java   (singleton — auto-detección cada 5 min)
 │   └── Session.java           (sesión del usuario autenticado)
 │
 └── view/
@@ -138,64 +145,114 @@ Usuario (abstracta)
 
 **`Cita`** — Entidad central del sistema. Conecta un `Paciente` con un `Medico`.
 - Nace siempre en estado `PENDIENTE`
-- Duración fija: 30 minutos (regla de negocio)
-- `horaFin` se calcula automáticamente a partir de `horaInicio`
+- Duración dinámica: depende del servicio (`ServicioCita.duracionMinutos`) y del origen (control usa `duracionControlMinutos`)
+- Soporta sobrecupo (`sobrecupo = true`) que salta validación de disponibilidad
+- Origen: `PACIENTE` (agendada por paciente) o `CONTROL` (agendada por médico como control)
 - Nunca se borra físicamente (borrado lógico mediante cambio de estado)
 
-**`Turno`** — Representa al paciente en la sala de espera física.
-- Estados: `EN_ESPERA → LLAMADO → ATENDIDO` (o `AUSENTE`)
+**`AgendaMedica`** — Define los horarios del médico por día de semana.
+- Campos: médico, día de semana (1=lunes…7=domingo), hora inicio, hora fin, slot en minutos
+- Los slots disponibles se generan dinámicamente según el `slotMinutos` y la duración del servicio
 
-**`RegistroHistorial`** — Log de auditoría. Registra cada acción importante.
+**`BloqueoAgenda`** — Bloqueos temporales sobre la agenda de un médico.
+- Por fecha específica, con rango horario opcional (si es null, bloquea todo el día)
+- Inhabilita parcial o totalmente la disponibilidad del médico en esa fecha
+
+**`HistorialClinico`** — Registro clínico asociado a una cita completada.
+- Campos: diagnóstico, enfermedad actual, receta, remisión, notas
+- Se guarda al finalizar la consulta y la cita pasa a estado `COMPLETADA`
 
 ### Esquema de base de datos
 
 ```sql
--- Tabla principal de usuarios (hereda PACIENTE, MEDICO, ADMIN)
 CREATE TABLE usuarios (
     id TEXT PRIMARY KEY,
     nombre TEXT NOT NULL,
     apellido TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
+    email TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
-    telefono TEXT,
-    rol TEXT NOT NULL CHECK(rol IN ('PACIENTE','MEDICO','ADMIN')),
-    activo INTEGER DEFAULT 1
+    telefono TEXT NOT NULL,
+    rol TEXT NOT NULL,
+    activo INTEGER NOT NULL DEFAULT 1
 );
 
--- Tablas específicas por rol (relación 1:1 con usuarios)
 CREATE TABLE pacientes (
-    usuario_id TEXT PRIMARY KEY REFERENCES usuarios(id),
-    tipo_documento TEXT,
-    numero_documento TEXT UNIQUE,
-    fecha_nacimiento TEXT,
-    direccion TEXT,
-    eps TEXT
+    usuario_id TEXT PRIMARY KEY,
+    tipo_documento TEXT NOT NULL,
+    numero_documento TEXT NOT NULL,
+    fecha_nacimiento TEXT NOT NULL,
+    direccion TEXT NOT NULL,
+    eps TEXT NOT NULL,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
 
 CREATE TABLE medicos (
-    usuario_id TEXT PRIMARY KEY REFERENCES usuarios(id),
-    registro_medico TEXT UNIQUE,
+    usuario_id TEXT PRIMARY KEY,
+    registro_medico TEXT NOT NULL,
     especialidad TEXT NOT NULL,
-    consultorio TEXT
+    consultorio TEXT NOT NULL,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
 
 CREATE TABLE administradores (
-    usuario_id TEXT PRIMARY KEY REFERENCES usuarios(id),
-    codigo_admin TEXT UNIQUE,
-    cargo TEXT
+    usuario_id TEXT PRIMARY KEY,
+    codigo_admin TEXT NOT NULL,
+    cargo TEXT NOT NULL,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
 
 CREATE TABLE citas (
     id TEXT PRIMARY KEY,
-    paciente_id TEXT NOT NULL REFERENCES usuarios(id),
-    medico_id TEXT NOT NULL REFERENCES usuarios(id),
+    paciente_id TEXT NOT NULL,
+    medico_id TEXT NOT NULL,
     especialidad TEXT NOT NULL,
+    servicio TEXT NOT NULL DEFAULT 'MEDICINA_GENERAL',
     fecha TEXT NOT NULL,
     hora_inicio TEXT NOT NULL,
+    duracion INTEGER NOT NULL DEFAULT 20,
+    estado TEXT NOT NULL,
+    tipo TEXT NOT NULL,
+    motivo TEXT NOT NULL,
+    origen TEXT NOT NULL DEFAULT 'PACIENTE',
+    sobrecupo INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (paciente_id) REFERENCES pacientes(usuario_id),
+    FOREIGN KEY (medico_id) REFERENCES medicos(usuario_id)
+);
+
+CREATE TABLE agenda_medica (
+    id TEXT PRIMARY KEY,
+    medico_id TEXT NOT NULL,
+    dia_semana INTEGER NOT NULL,
+    hora_inicio TEXT NOT NULL,
     hora_fin TEXT NOT NULL,
-    tipo TEXT NOT NULL CHECK(tipo IN ('PRESENCIAL','VIRTUAL')),
-    estado TEXT NOT NULL DEFAULT 'PENDIENTE' CHECK(estado IN ('PENDIENTE','CONFIRMADA','COMPLETADA','CANCELADA')),
-    motivo TEXT
+    slot_minutos INTEGER NOT NULL DEFAULT 20,
+    FOREIGN KEY (medico_id) REFERENCES medicos(usuario_id)
+);
+
+CREATE TABLE bloqueos_agenda (
+    id TEXT PRIMARY KEY,
+    medico_id TEXT NOT NULL,
+    fecha TEXT NOT NULL,
+    hora_inicio TEXT,
+    hora_fin TEXT,
+    motivo TEXT NOT NULL,
+    FOREIGN KEY (medico_id) REFERENCES medicos(usuario_id)
+);
+
+CREATE TABLE historial_clinico (
+    id TEXT PRIMARY KEY,
+    cita_id TEXT NOT NULL,
+    medico_id TEXT NOT NULL,
+    paciente_id TEXT NOT NULL,
+    fecha_consulta TEXT NOT NULL,
+    diagnostico TEXT,
+    enfermedad_actual TEXT,
+    receta TEXT,
+    remision TEXT,
+    notas TEXT,
+    FOREIGN KEY (cita_id) REFERENCES citas(id),
+    FOREIGN KEY (medico_id) REFERENCES medicos(usuario_id),
+    FOREIGN KEY (paciente_id) REFERENCES pacientes(usuario_id)
 );
 ```
 
@@ -204,28 +261,35 @@ CREATE TABLE citas (
 ## Flujo de una cita
 
 ```
-[Paciente solicita cita]
+[Paciente / Admin solicita cita]     [Médico agenda control]
+        │                                     │
+        ▼                                     │
+  Estado: PENDIENTE ◄─────────────────────────┘ (origen=CONTROL)
         │
-        ▼
-  Estado: PENDIENTE
-        │
-        ▼ (admin confirma)
+        ▼ (admin confirma o queda automática)
   Estado: CONFIRMADA ──────────────► CANCELADA
         │
-        ▼ (médico atiende al paciente)
-  Estado: COMPLETADA
+        ├──► (médico completa consulta + historial clínico)
+        │     Estado: COMPLETADA
+        │
+        └──► (auto-detección cada 5 min)
+              Estado: NO_ASISTIO
 ```
 
 ---
 
 ## Reglas de validación
 
-- **Doble cita**: no se permite agendar una cita si el paciente o el médico ya tienen otra en el mismo horario.
-- **Transiciones válidas**: una cita `COMPLETADA` no puede cancelarse; una `PENDIENTE` no puede saltar a `COMPLETADA`.
-- **Campos requeridos**: paciente, médico, especialidad, fecha, hora y tipo son obligatorios.
+- **Disponibilidad dinámica**: los slots se generan desde `agenda_medica` según `slot_minutos` y se filtran restando citas ocupadas + bloqueos activos.
+- **Duración variable**: cada servicio define su propia duración (`duracionMinutos` para primera vez, `duracionControlMinutos` para controles).
+- **Frecuencia por especialidad**: un paciente no puede tener dos citas activas (`PENDIENTE` o `CONFIRMADA`) en la misma especialidad.
+- **Sobrecupo**: salta la validación de disponibilidad. Se marca visualmente con borde rojo izquierdo en la tabla.
+- **Bloqueos de agenda**: inhabilitan slots completos o parciales para un médico en una fecha específica.
+- **Auto-detección de inasistencias**: al cargar cada dashboard y luego cada 5 minutos vía `ScheduledExecutorService`, las citas vencidas pasan a `NO_ASISTIO`.
+- **Origen de cita**: las agendadas por el paciente son `PACIENTE`; las agendadas por el médico como control son `CONTROL`.
+- **Historial clínico**: al completar una consulta, el médico llena el formulario (diagnóstico obligatorio) y se persiste en `historial_clinico`.
 - **Email duplicado**: no se permite registrar dos usuarios con el mismo email.
-- **Código de administrador**: para registrar un admin se requiere un código secreto interno (`ADMIN-SECRET-2026`).
-- **Borrado lógico**: las citas canceladas y usuarios desactivados permanecen en la BD con estado `CANCELADA` o `activo = 0`.
+- **Borrado lógico**: las citas canceladas y usuarios desactivados permanecen en la BD.
 
 ---
 
@@ -238,14 +302,21 @@ CREATE TABLE citas (
 - Cancelar una cita (excepto si ya fue completada)
 
 ### Médico
-- Ver agenda del día (citas pendientes y confirmadas)
-- Marcar paciente como atendido (confirma automáticamente si estaba pendiente)
+- Ver agenda del día con citas filtradas por estado
+- **Agendar control**: agenda cita de control para un paciente (origen=CONTROL, usa duración reducida)
+- **Iniciar consulta**: abre formulario de historial clínico (diagnóstico, receta, remisión) y completa la cita
+- Marcar paciente como **no asistió**
+- **Reprogramar cita**: cambia fecha/hora de una cita existente
+- **Gestionar horarios**: administra su propia agenda médica (días, horarios, slots)
 
 ### Administrador
-- Gestionar pacientes (listar, editar nombre/teléfono, desactivar)
+- Gestionar pacientes (listar, editar, desactivar)
 - Gestionar médicos (listar, registrar nuevo)
 - Ver todas las citas del sistema
-- Confirmar o cancelar cualquier cita
+- **Agregar / modificar cita** a cualquier paciente con selector de tipo (primera vez / control) y sobrecupo
+- **Gestionar bloqueos**: bloquea parcial o totalmente la agenda de un médico en una fecha
+- **Gestionar horarios**: administra la agenda médica de cualquier médico
+- Marcar paciente como **no asistió**
 
 ---
 
@@ -277,7 +348,16 @@ mvn javafx:run
 | Rol | Email | Contraseña |
 |-----|-------|------------|
 | Paciente | `paciente@demo.com` | `1234` |
-| Médico | `medico@demo.com` | `1234` |
+| Paciente | `pedro@demo.com` | `1234` |
+| Paciente | `ana@demo.com` | `1234` |
+| Paciente | `sofia@demo.com` | `1234` |
+| Paciente | `diego@demo.com` | `1234` |
+| Paciente | `carolina@demo.com` | `1234` |
+| Médico (Medicina General) | `medico@demo.com` | `1234` |
+| Médico (Odontología) | `odontologia@demo.com` | `1234` |
+| Médico (Pediatría) | `pediatria@demo.com` | `1234` |
+| Médico (Dermatología) | `dermatologia@demo.com` | `1234` |
+| Médico (Psicología) | `psicologia@demo.com` | `1234` |
 | Administrador | `admin@demo.com` | `1234` |
 
 ---
@@ -292,20 +372,15 @@ El sistema usa **SQLite** como base de datos embebida. El archivo `citasmedicas.
 - Transacciones ACID
 - `PRAGMA foreign_keys = ON` para integridad referencial
 
-La conexión se gestiona a través de `DatabaseConnection.java`:
-```java
-// URL de conexión
-"jdbc:sqlite:citasmedicas.db"
-```
+La conexión se gestiona a través de `DatabaseConnection.java` que también inicializa las tablas y los datos demo automáticamente en la primera ejecución.
 
 ---
 
 ## Mejoras futuras
 
-- **Supabase**: migrar a base de datos en la nube para permitir acceso multi-sede y sincronización en tiempo real.
-- **Módulo de turnos**: integrar `Turno` y `RegistroHistorial` con DAO y UI para sala de espera y auditoría.
+- **Kanban / Sala de Espera**: vista del médico con columnas de estado tipo kanban para mover pacientes de "En espera" a "En consulta" a "Atendido".
 - **Reportes**: generar estadísticas de citas por médico, especialidad y periodo.
-- **MaterialFX**: opcionalmente migrar la UI a Material Design para una experiencia visual más moderna.
+- **Supabase**: migrar a base de datos en la nube para acceso multi-sede y sincronización en tiempo real.
 
 ---
 
