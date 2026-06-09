@@ -5,6 +5,7 @@ import co.edu.upc.citasmedicas.model.Cita;
 import co.edu.upc.citasmedicas.model.Medico;
 import co.edu.upc.citasmedicas.model.Paciente;
 import co.edu.upc.citasmedicas.model.Usuario;
+import co.edu.upc.citasmedicas.enums.EstadoCita;
 import co.edu.upc.citasmedicas.service.CitaService;
 import co.edu.upc.citasmedicas.service.PacienteService;
 import co.edu.upc.citasmedicas.service.Session;
@@ -16,6 +17,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 
@@ -87,6 +89,25 @@ public class DashboardAdminController {
         cargarPacientes();
         cargarMedicos();
         cargarCitas();
+        aplicarColorFilas(tablaCitas);
+    }
+
+    private void aplicarColorFilas(TableView<Cita> tabla) {
+        tabla.setRowFactory(tv -> new TableRow<>() {
+            @Override
+            protected void updateItem(Cita item, boolean empty) {
+                super.updateItem(item, empty);
+                getStyleClass().removeAll("row-pendiente", "row-confirmada", "row-completada", "row-cancelada");
+                if (item == null || empty) return;
+                String css = switch (item.getEstado()) {
+                    case PENDIENTE -> "row-pendiente";
+                    case CONFIRMADA -> "row-confirmada";
+                    case COMPLETADA -> "row-completada";
+                    case CANCELADA -> "row-cancelada";
+                };
+                getStyleClass().add(css);
+            }
+        });
     }
 
     private void cargarPacientes() {

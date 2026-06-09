@@ -28,8 +28,8 @@
                     <Label text="Medico:" styleClass="field-label"/>
                     <ComboBox fx:id="cbMedico" maxWidth="Infinity" promptText="Selecciona medico"/>
 
-                    <Label text="Fecha (AAAA-MM-DD):" styleClass="field-label"/>
-                    <TextField fx:id="txtFecha" promptText="2025-06-15" styleClass="input-height" maxWidth="Infinity"/>
+                    <Label text="Fecha:" styleClass="field-label"/>
+                    <DatePicker fx:id="dateFecha" maxWidth="Infinity"/>
 
                     <Label text="Hora:" styleClass="field-label"/>
                     <ComboBox fx:id="cbHora" maxWidth="Infinity"/>

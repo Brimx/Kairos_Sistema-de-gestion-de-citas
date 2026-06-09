@@ -24,8 +24,10 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
@@ -35,7 +37,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeParseException;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +54,7 @@ public class DashboardPacienteController {
     @FXML private TableColumn<Cita, String> colEstado;
 
     @FXML private ComboBox<String> cbMedico;
-    @FXML private TextField txtFecha;
+    @FXML private DatePicker dateFecha;
     @FXML private ComboBox<String> cbHora;
     @FXML private ComboBox<String> cbTipo;
     @FXML private TextField txtMotivo;
@@ -89,6 +91,7 @@ public class DashboardPacienteController {
         inicializarCalendario();
         cargarMedicos();
         cargarMisCitas();
+        aplicarColorFilas(tablaCitas);
     }
 
     private void inicializarCalendario() {
@@ -167,6 +170,24 @@ public class DashboardPacienteController {
         target.addEntry(entry);
     }
 
+    private void aplicarColorFilas(TableView<Cita> tabla) {
+        tabla.setRowFactory(tv -> new TableRow<>() {
+            @Override
+            protected void updateItem(Cita item, boolean empty) {
+                super.updateItem(item, empty);
+                getStyleClass().removeAll("row-pendiente", "row-confirmada", "row-completada", "row-cancelada");
+                if (item == null || empty) return;
+                String css = switch (item.getEstado()) {
+                    case PENDIENTE -> "row-pendiente";
+                    case CONFIRMADA -> "row-confirmada";
+                    case COMPLETADA -> "row-completada";
+                    case CANCELADA -> "row-cancelada";
+                };
+                getStyleClass().add(css);
+            }
+        });
+    }
+
     private void cargarMedicos() {
         try {
             List<Medico> medicos = medicoDAO.obtenerTodos();
@@ -197,18 +218,17 @@ public class DashboardPacienteController {
     private void handleAgendarCita() {
         lblMensaje.setText("");
         String medicoKey = cbMedico.getValue();
-        String fechaTexto = txtFecha.getText().trim();
+        LocalDate fecha = dateFecha.getValue();
         String hora = cbHora.getValue();
         String tipo = cbTipo.getValue();
         String motivo = txtMotivo.getText() == null ? "" : txtMotivo.getText().trim();
 
-        if (medicoKey == null || fechaTexto.isEmpty() || hora == null || tipo == null) {
+        if (medicoKey == null || fecha == null || hora == null || tipo == null) {
             mostrarError(lblMensaje, "Completa medico, fecha y hora.");
             return;
         }
 
         try {
-            LocalDate fecha = LocalDate.parse(fechaTexto);
             LocalTime horaInicio = LocalTime.parse(hora);
             String medicoId = mapaIdsMedicos.get(medicoKey);
             Paciente paciente = pacienteDAO.buscarPorId(Session.getUsuarioActual().getId());
@@ -233,8 +253,6 @@ public class DashboardPacienteController {
             mostrarExito(lblMensaje, "Cita agendada correctamente.");
             limpiarFormulario();
             cargarMisCitas();
-        } catch (DateTimeParseException exception) {
-            mostrarError(lblMensaje, "Formato de fecha u hora invalido (AAAA-MM-DD).");
         } catch (IllegalArgumentException | IllegalStateException exception) {
             mostrarError(lblMensaje, exception.getMessage());
         }
@@ -275,7 +293,7 @@ public class DashboardPacienteController {
 
     private void limpiarFormulario() {
         cbMedico.setValue(null);
-        txtFecha.clear();
+        dateFecha.setValue(null);
         cbHora.setValue(null);
         txtMotivo.clear();
         cbTipo.setValue("PRESENCIAL");

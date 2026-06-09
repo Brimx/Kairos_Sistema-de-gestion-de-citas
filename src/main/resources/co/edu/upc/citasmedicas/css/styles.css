@@ -192,3 +192,19 @@
 .input-small {
     -fx-pref-height: 34;
 }
+
+.row-pendiente {
+    -fx-background-color: #fef3c7;
+}
+
+.row-confirmada {
+    -fx-background-color: #dbeafe;
+}
+
+.row-completada {
+    -fx-background-color: #d1fae5;
+}
+
+.row-cancelada {
+    -fx-background-color: #fee2e2;
+}

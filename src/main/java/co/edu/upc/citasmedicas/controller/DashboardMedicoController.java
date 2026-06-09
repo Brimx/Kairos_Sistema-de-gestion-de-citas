@@ -20,6 +20,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.VBox;
 
@@ -61,6 +62,25 @@ public class DashboardMedicoController {
 
         inicializarCalendario();
         cargarAgenda();
+        aplicarColorFilas(tablaAgenda);
+    }
+
+    private void aplicarColorFilas(TableView<Cita> tabla) {
+        tabla.setRowFactory(tv -> new TableRow<>() {
+            @Override
+            protected void updateItem(Cita item, boolean empty) {
+                super.updateItem(item, empty);
+                getStyleClass().removeAll("row-pendiente", "row-confirmada", "row-completada", "row-cancelada");
+                if (item == null || empty) return;
+                String css = switch (item.getEstado()) {
+                    case PENDIENTE -> "row-pendiente";
+                    case CONFIRMADA -> "row-confirmada";
+                    case COMPLETADA -> "row-completada";
+                    case CANCELADA -> "row-cancelada";
+                };
+                getStyleClass().add(css);
+            }
+        });
     }
 
     private void inicializarCalendario() {
