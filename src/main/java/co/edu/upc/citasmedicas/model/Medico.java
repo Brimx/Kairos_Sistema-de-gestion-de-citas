@@ -6,7 +6,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 
 /**
- * Representa a un médico del sistema EPS.
+ * Representa a un médico de Kairos.
  * Hereda de Usuario y agrega datos profesionales y su agenda del día (Queue).
  */
 public class Medico extends Usuario {

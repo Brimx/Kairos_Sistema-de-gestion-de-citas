@@ -5,7 +5,7 @@ import java.time.LocalDate;
 import java.util.Stack;
 
 /**
- * Representa a un paciente registrado en el sistema EPS.
+ * Representa a un paciente registrado en Kairos.
  * Hereda de Usuario y agrega datos médicos y el historial de citas (Stack).
  */
 public class Paciente extends Usuario {

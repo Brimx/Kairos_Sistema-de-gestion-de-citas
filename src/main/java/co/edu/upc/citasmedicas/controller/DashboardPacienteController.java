@@ -546,7 +546,7 @@ public class DashboardPacienteController {
     @FXML
     private void handleCerrarSesion() throws IOException {
         Session.cerrar();
-        ViewManager.showView("/co/edu/upc/citasmedicas/fxml/login.fxml", "Sistema de Citas Medicas EPS");
+        ViewManager.showView("/co/edu/upc/citasmedicas/fxml/login.fxml", "Kairos - Sistema de Gestion de Citas");
     }
 
     private void limpiarFormulario() {

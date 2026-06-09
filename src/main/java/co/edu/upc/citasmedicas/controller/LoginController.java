@@ -84,15 +84,15 @@ public class LoginController {
             case PACIENTE -> "/co/edu/upc/citasmedicas/fxml/dashboard_paciente.fxml";
         };
         String titulo = switch (usuario.getRol()) {
-            case ADMIN -> "Panel administrador - Sistema EPS";
-            case MEDICO -> "Panel medico - Sistema EPS";
-            case PACIENTE -> "Panel paciente - Sistema EPS";
+            case ADMIN -> "Kairos - Panel administrador";
+            case MEDICO -> "Kairos - Panel medico";
+            case PACIENTE -> "Kairos - Panel paciente";
         };
         ViewManager.showView(fxmlPath, titulo);
     }
 
     @FXML
     private void handleIrRegistro() throws IOException {
-        ViewManager.showView("/co/edu/upc/citasmedicas/fxml/registro.fxml", "Registro de Usuario - Sistema EPS");
+        ViewManager.showView("/co/edu/upc/citasmedicas/fxml/registro.fxml", "Kairos - Registro de Usuario");
     }
 }

@@ -1,6 +1,6 @@
-# Sistema de Gestión de Citas Médicas
+# Kairos — Sistema de Gestión de Citas Médicas
 
-Aplicación de escritorio desarrollada en **Java + JavaFX** con interfaz **Material Design** vía CSS (sin librerías externas) para la gestión integral de citas médicas en una EPS. Permite a pacientes agendar citas, a médicos gestionar su agenda del día y a administradores supervisar el sistema completo.
+Aplicación de escritorio desarrollada en **Java + JavaFX** con interfaz **Material Design** vía CSS (sin librerías externas) para la gestión integral de citas médicas. Permite a pacientes agendar citas, a médicos gestionar su agenda del día y a administradores supervisar el sistema completo.
 
 ![Java](https://img.shields.io/badge/Java-17+-orange?logo=java) ![JavaFX](https://img.shields.io/badge/JavaFX-21+-blue) ![Paradigma](https://img.shields.io/badge/Paradigma-POO-green) ![SQLite](https://img.shields.io/badge/Base%20de%20datos-SQLite-lightgrey?logo=sqlite)
 

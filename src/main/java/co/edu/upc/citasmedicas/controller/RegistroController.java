@@ -256,7 +256,7 @@ public class RegistroController {
 
     @FXML
     private void handleVolverLogin() throws IOException {
-        ViewManager.showView("/co/edu/upc/citasmedicas/fxml/login.fxml", "Iniciar Sesion - Sistema EPS");
+        ViewManager.showView("/co/edu/upc/citasmedicas/fxml/login.fxml", "Kairos - Iniciar Sesion");
     }
 
     private void limpiarCampos() {

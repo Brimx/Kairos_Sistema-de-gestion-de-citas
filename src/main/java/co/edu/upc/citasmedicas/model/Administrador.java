@@ -3,7 +3,7 @@ package co.edu.upc.citasmedicas.model;
 import co.edu.upc.citasmedicas.enums.Rol;
 
 /**
- * Representa al personal administrativo del sistema EPS.
+ * Representa al personal administrativo de Kairos.
  * Tiene acceso total: gestiona médicos, pacientes y reportes.
  */
 public class Administrador extends Usuario {

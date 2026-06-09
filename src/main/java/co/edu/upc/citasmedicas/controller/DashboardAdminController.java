@@ -1026,7 +1026,7 @@ public class DashboardAdminController {
 
     @FXML
     private void irARegistroMedico() throws IOException {
-        ViewManager.showView("/co/edu/upc/citasmedicas/fxml/registro.fxml", "Registro de Usuario - Sistema EPS");
+        ViewManager.showView("/co/edu/upc/citasmedicas/fxml/registro.fxml", "Kairos - Registro de Usuario");
     }
 
     @FXML
@@ -1389,6 +1389,6 @@ public class DashboardAdminController {
     @FXML
     private void handleCerrarSesion() throws IOException {
         Session.cerrar();
-        ViewManager.showView("/co/edu/upc/citasmedicas/fxml/login.fxml", "Sistema de Citas Medicas EPS");
+        ViewManager.showView("/co/edu/upc/citasmedicas/fxml/login.fxml", "Kairos - Sistema de Gestion de Citas");
     }
 }
