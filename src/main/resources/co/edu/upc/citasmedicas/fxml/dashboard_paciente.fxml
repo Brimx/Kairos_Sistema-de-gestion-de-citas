@@ -13,6 +13,7 @@
             <padding><Insets top="14" right="20" bottom="14" left="20"/></padding>
             <Label fx:id="lblBienvenida" styleClass="header-title"/>
             <Region HBox.hgrow="ALWAYS"/>
+            <Label fx:id="lblContador" styleClass="header-subtitle"/>
             <Label text="PACIENTE" styleClass="header-role"/>
             <Button text="Cerrar Sesion" onAction="#handleCerrarSesion" styleClass="btn-logout"/>
         </HBox>
@@ -52,6 +53,7 @@
                     <Tab text="Mis citas">
                         <VBox spacing="10">
                             <padding><Insets top="12" right="0" bottom="0" left="0"/></padding>
+                            <TextField fx:id="searchCitas" promptText="Buscar citas..." styleClass="input-small" maxWidth="Infinity"/>
                             <TableView fx:id="tablaCitas" VBox.vgrow="ALWAYS">
                                 <columns>
                                     <TableColumn fx:id="colFecha"  text="Fecha"   prefWidth="100"/>

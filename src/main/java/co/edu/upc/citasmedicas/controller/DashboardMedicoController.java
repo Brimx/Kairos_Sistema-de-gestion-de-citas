@@ -1,5 +1,6 @@
 package co.edu.upc.citasmedicas.controller;
 
+import co.edu.upc.citasmedicas.enums.EstadoCita;
 import co.edu.upc.citasmedicas.model.Cita;
 import co.edu.upc.citasmedicas.model.Medico;
 import co.edu.upc.citasmedicas.service.CitaService;
@@ -15,13 +16,19 @@ import com.calendarfx.view.CalendarView;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.VBox;
 
 import java.io.IOException;
@@ -35,17 +42,22 @@ public class DashboardMedicoController {
 
     @FXML private Label lblBienvenida;
     @FXML private Label lblEspecialidad;
+    @FXML private Label lblContador;
     @FXML private TableView<Cita> tablaAgenda;
     @FXML private TableColumn<Cita, String> colPaciente;
     @FXML private TableColumn<Cita, String> colFecha;
     @FXML private TableColumn<Cita, String> colHora;
     @FXML private TableColumn<Cita, String> colTipo;
+    @FXML private TableColumn<Cita, String> colMotivo;
     @FXML private TableColumn<Cita, String> colEstado;
+    @FXML private TextField searchCitas;
     @FXML private Label lblMensaje;
     @FXML private VBox calendarContainer;
 
     private final CitaService citaService = new CitaService();
     private CalendarView calendarView;
+    private ObservableList<Cita> listaCitas = FXCollections.observableArrayList();
+    private FilteredList<Cita> filteredCitas;
 
     @FXML
     public void initialize() {
@@ -58,10 +70,31 @@ public class DashboardMedicoController {
         colFecha.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getFecha().toString()));
         colHora.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getHoraInicio().toString()));
         colTipo.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTipo().name()));
+        colMotivo.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getMotivo()));
         colEstado.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getEstado().name()));
 
         tablaAgenda.setPlaceholder(new Label("No hay citas para hoy"));
 
+        filteredCitas = new FilteredList<>(listaCitas, p -> true);
+        SortedList<Cita> sorted = new SortedList<>(filteredCitas);
+        sorted.comparatorProperty().bind(tablaAgenda.comparatorProperty());
+        tablaAgenda.setItems(sorted);
+
+        searchCitas.textProperty().addListener((obs, oldV, newV) -> {
+            String filtro = newV == null ? "" : newV.toLowerCase();
+            filteredCitas.setPredicate(cita -> {
+                if (filtro.isEmpty()) return true;
+                return cita.getPaciente().getNombre().toLowerCase().contains(filtro)
+                    || cita.getPaciente().getApellido().toLowerCase().contains(filtro)
+                    || cita.getFecha().toString().contains(filtro)
+                    || cita.getEstado().name().toLowerCase().contains(filtro)
+                    || cita.getTipo().name().toLowerCase().contains(filtro)
+                    || cita.getMotivo().toLowerCase().contains(filtro);
+            });
+            actualizarContador();
+        });
+
+        conectarTooltips();
         inicializarCalendario();
         cargarAgenda();
         aplicarColorFilas(tablaAgenda);
@@ -164,11 +197,34 @@ public class DashboardMedicoController {
     private void cargarAgenda() {
         try {
             Medico medico = (Medico) Session.getUsuarioActual();
-            tablaAgenda.setItems(FXCollections.observableArrayList(
-                    citaService.agendaDelMedico(medico.getId())));
+            listaCitas.setAll(citaService.agendaDelMedico(medico.getId()));
             cargarCalendario();
+            actualizarContador();
         } catch (RuntimeException exception) {
             mostrarError(lblMensaje, "Error al cargar agenda.");
+        }
+    }
+
+    private void actualizarContador() {
+        int total = filteredCitas.size();
+        int pendientes = (int) listaCitas.stream().filter(c -> c.getEstado() == EstadoCita.PENDIENTE).count();
+        lblContador.setText(total + " citas | " + pendientes + " pendientes");
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private void conectarTooltips() {
+        for (TableColumn col : new TableColumn[]{
+                colPaciente, colFecha, colHora, colTipo, colMotivo, colEstado
+        }) {
+            col.setCellFactory(tc -> new TableCell() {
+                @Override
+                protected void updateItem(Object item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) { setText(null); setTooltip(null); return; }
+                    setText(item.toString());
+                    setTooltip(new Tooltip(item.toString()));
+                }
+            });
         }
     }
 

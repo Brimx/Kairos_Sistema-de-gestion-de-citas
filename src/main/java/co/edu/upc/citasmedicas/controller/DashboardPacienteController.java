@@ -20,16 +20,21 @@ import com.calendarfx.view.CalendarView;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.VBox;
 
 import java.io.IOException;
@@ -46,12 +51,14 @@ import java.util.UUID;
 public class DashboardPacienteController {
 
     @FXML private Label lblBienvenida;
+    @FXML private Label lblContador;
     @FXML private TableView<Cita> tablaCitas;
     @FXML private TableColumn<Cita, String> colFecha;
     @FXML private TableColumn<Cita, String> colMedico;
     @FXML private TableColumn<Cita, String> colHora;
     @FXML private TableColumn<Cita, String> colTipo;
     @FXML private TableColumn<Cita, String> colEstado;
+    @FXML private TextField searchCitas;
 
     @FXML private ComboBox<String> cbMedico;
     @FXML private DatePicker dateFecha;
@@ -61,6 +68,9 @@ public class DashboardPacienteController {
 
     @FXML private Label lblMensaje;
     @FXML private VBox calendarContainer;
+
+    private ObservableList<Cita> listaCitas = FXCollections.observableArrayList();
+    private FilteredList<Cita> filteredCitas;
 
     private final CitaService citaService = new CitaService();
     private final MedicoDAO medicoDAO = new MedicoDAO();
@@ -90,6 +100,26 @@ public class DashboardPacienteController {
 
         tablaCitas.setPlaceholder(new Label("No tienes citas agendadas"));
 
+        filteredCitas = new FilteredList<>(listaCitas, p -> true);
+        SortedList<Cita> sorted = new SortedList<>(filteredCitas);
+        sorted.comparatorProperty().bind(tablaCitas.comparatorProperty());
+        tablaCitas.setItems(sorted);
+
+        searchCitas.textProperty().addListener((obs, oldV, newV) -> {
+            String filtro = newV == null ? "" : newV.toLowerCase();
+            filteredCitas.setPredicate(cita -> {
+                if (filtro.isEmpty()) return true;
+                return cita.getMedico().getNombre().toLowerCase().contains(filtro)
+                    || cita.getMedico().getApellido().toLowerCase().contains(filtro)
+                    || cita.getFecha().toString().contains(filtro)
+                    || cita.getEstado().name().toLowerCase().contains(filtro)
+                    || cita.getTipo().name().toLowerCase().contains(filtro)
+                    || cita.getMotivo().toLowerCase().contains(filtro);
+            });
+            actualizarContador();
+        });
+
+        conectarTooltips();
         inicializarCalendario();
         cargarMedicos();
         cargarMisCitas();
@@ -208,11 +238,32 @@ public class DashboardPacienteController {
     private void cargarMisCitas() {
         try {
             Paciente paciente = (Paciente) Session.getUsuarioActual();
-            tablaCitas.setItems(FXCollections.observableArrayList(
-                    citaService.citasDelPaciente(paciente.getId())));
+            listaCitas.setAll(citaService.citasDelPaciente(paciente.getId()));
             cargarCalendario();
+            actualizarContador();
         } catch (RuntimeException exception) {
             mostrarError(lblMensaje, "Error al cargar tus citas.");
+        }
+    }
+
+    private void actualizarContador() {
+        int total = filteredCitas.size();
+        int pendientes = (int) listaCitas.stream().filter(c -> c.getEstado() == EstadoCita.PENDIENTE).count();
+        lblContador.setText(total + " citas | " + pendientes + " pendientes");
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private void conectarTooltips() {
+        for (TableColumn col : new TableColumn[]{colFecha, colMedico, colHora, colTipo, colEstado}) {
+            col.setCellFactory(tc -> new TableCell() {
+                @Override
+                protected void updateItem(Object item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) { setText(null); setTooltip(null); return; }
+                    setText(item.toString());
+                    setTooltip(new Tooltip(item.toString()));
+                }
+            });
         }
     }
 

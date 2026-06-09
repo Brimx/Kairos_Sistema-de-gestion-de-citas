@@ -16,6 +16,7 @@
                 <Label fx:id="lblEspecialidad" styleClass="header-subtitle"/>
             </VBox>
             <Region HBox.hgrow="ALWAYS"/>
+            <Label fx:id="lblContador" styleClass="header-subtitle"/>
             <Button text="Actualizar" onAction="#handleActualizar" styleClass="btn-ghost"/>
             <Button text="Cerrar Sesion" onAction="#handleCerrarSesion" styleClass="btn-logout"/>
         </HBox>
@@ -30,13 +31,15 @@
                 <Tab text="Agenda del dia">
                     <VBox spacing="12">
                         <padding><Insets top="12" right="0" bottom="0" left="0"/></padding>
+                        <TextField fx:id="searchCitas" promptText="Buscar citas..." styleClass="input-small" maxWidth="Infinity"/>
                         <TableView fx:id="tablaAgenda" VBox.vgrow="ALWAYS">
                             <columns>
                                 <TableColumn fx:id="colPaciente" text="Paciente"   prefWidth="200"/>
-                                <TableColumn fx:id="colFecha"    text="Fecha"      prefWidth="110"/>
-                                <TableColumn fx:id="colHora"     text="Hora"       prefWidth="80"/>
-                                <TableColumn fx:id="colTipo"     text="Tipo"       prefWidth="100"/>
-                                <TableColumn fx:id="colEstado"   text="Estado"     prefWidth="110"/>
+                                <TableColumn fx:id="colFecha"    text="Fecha"      prefWidth="100"/>
+                                <TableColumn fx:id="colHora"     text="Hora"       prefWidth="70"/>
+                                <TableColumn fx:id="colTipo"     text="Tipo"       prefWidth="90"/>
+                                <TableColumn fx:id="colMotivo"   text="Motivo"     prefWidth="150"/>
+                                <TableColumn fx:id="colEstado"   text="Estado"     prefWidth="100"/>
                             </columns>
                         </TableView>
                         <HBox spacing="10">

@@ -13,6 +13,7 @@
             <padding><Insets top="14" right="20" bottom="14" left="20"/></padding>
             <Label fx:id="lblBienvenida" styleClass="header-title"/>
             <Region HBox.hgrow="ALWAYS"/>
+            <Label fx:id="lblContador" styleClass="header-subtitle"/>
             <Label text="ADMINISTRADOR" styleClass="header-role"/>
             <Button text="Cerrar Sesion" onAction="#handleCerrarSesion" styleClass="btn-logout"/>
         </HBox>
@@ -25,6 +26,8 @@
                 <VBox spacing="12">
                     <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
                     <Label text="Gestion de Pacientes" styleClass="section-title"/>
+
+                    <TextField fx:id="searchPacientes" promptText="Buscar pacientes..." styleClass="input-small" maxWidth="Infinity"/>
 
                     <TableView fx:id="tablaPacientes" VBox.vgrow="ALWAYS" prefHeight="300">
                         <columns>
@@ -54,6 +57,7 @@
                         <Button text="+ Registrar nuevo medico"
                                 onAction="#irARegistroMedico" styleClass="btn-primary"/>
                     </HBox>
+                    <TextField fx:id="searchMedicos" promptText="Buscar medicos..." styleClass="input-small" maxWidth="Infinity"/>
                     <TableView fx:id="tablaMedicos" VBox.vgrow="ALWAYS">
                         <columns>
                             <TableColumn fx:id="colMedNombre" text="Nombre"       prefWidth="220"/>
@@ -69,6 +73,7 @@
                 <VBox spacing="12">
                     <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
                     <Label text="Citas del sistema" styleClass="section-title"/>
+                    <TextField fx:id="searchCitas" promptText="Buscar citas..." styleClass="input-small" maxWidth="Infinity"/>
                     <TableView fx:id="tablaCitas" VBox.vgrow="ALWAYS">
                         <columns>
                             <TableColumn fx:id="colCitaPac"   text="Paciente"  prefWidth="170"/>

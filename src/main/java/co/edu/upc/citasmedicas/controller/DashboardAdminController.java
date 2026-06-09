@@ -12,10 +12,14 @@ import co.edu.upc.citasmedicas.service.Session;
 import co.edu.upc.citasmedicas.view.ViewManager;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
@@ -26,6 +30,9 @@ import java.io.IOException;
 
 public class DashboardAdminController {
 
+    @FXML private TextField searchPacientes;
+    @FXML private TextField searchMedicos;
+    @FXML private TextField searchCitas;
     @FXML private TableView<Paciente> tablaPacientes;
     @FXML private TableColumn<Paciente, String> colPacNombre;
     @FXML private TableColumn<Paciente, String> colPacEmail;
@@ -47,6 +54,7 @@ public class DashboardAdminController {
     @FXML private TableColumn<Cita, String> colCitaEstado;
 
     @FXML private Label lblBienvenida;
+    @FXML private Label lblContador;
     @FXML private Label lblMensaje;
     @FXML private Label lblMensajeMedicos;
     @FXML private Label lblMensajeCitas;
@@ -54,6 +62,10 @@ public class DashboardAdminController {
     private final PacienteService pacienteService = new PacienteService();
     private final MedicoDAO medicoDAO = new MedicoDAO();
     private final CitaService citaService = new CitaService();
+
+    private FilteredList<Paciente> filteredPacientes;
+    private FilteredList<Medico> filteredMedicos;
+    private FilteredList<Cita> filteredCitas;
 
     @FXML
     public void initialize() {
@@ -79,6 +91,8 @@ public class DashboardAdminController {
         colCitaHora.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getHoraInicio().toString()));
         colCitaEstado.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getEstado().name()));
 
+        conectarTooltips();
+
         tablaPacientes.getSelectionModel().selectedItemProperty()
                 .addListener((obs, old, sel) -> {
                     if (sel != null) {
@@ -91,10 +105,54 @@ public class DashboardAdminController {
         tablaMedicos.setPlaceholder(new Label("No hay medicos registrados"));
         tablaCitas.setPlaceholder(new Label("No hay citas registradas"));
 
+        searchPacientes.textProperty().addListener((obs, old, val) -> {
+            if (filteredPacientes != null) {
+                filteredPacientes.setPredicate(p -> val == null || val.isBlank()
+                        || (p.getNombre() + " " + p.getApellido() + " " + p.getEmail() + " " + p.getNumeroDocumento() + " " + p.getTelefono())
+                                .toLowerCase().contains(val.toLowerCase()));
+            }
+        });
+        searchMedicos.textProperty().addListener((obs, old, val) -> {
+            if (filteredMedicos != null) {
+                filteredMedicos.setPredicate(m -> val == null || val.isBlank()
+                        || (m.getNombre() + " " + m.getApellido() + " " + m.getEmail() + " " + m.getEspecialidad().getNombre())
+                                .toLowerCase().contains(val.toLowerCase()));
+            }
+        });
+        searchCitas.textProperty().addListener((obs, old, val) -> {
+            if (filteredCitas != null) {
+                filteredCitas.setPredicate(c -> val == null || val.isBlank()
+                        || (c.getPaciente().getNombre() + " " + c.getPaciente().getApellido()
+                            + " " + c.getMedico().getNombre() + " " + c.getMedico().getApellido()
+                            + " " + c.getFecha() + " " + c.getHoraInicio() + " " + c.getEstado().name())
+                                .toLowerCase().contains(val.toLowerCase()));
+                actualizarContador();
+            }
+        });
+
         cargarPacientes();
         cargarMedicos();
         cargarCitas();
         aplicarColorFilas(tablaCitas);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private void conectarTooltips() {
+        for (TableColumn col : new TableColumn[]{
+                colPacNombre, colPacEmail, colPacDoc, colPacTel,
+                colMedNombre, colMedEmail, colMedEsp,
+                colCitaPac, colCitaMed, colCitaFecha, colCitaHora, colCitaEstado
+        }) {
+            col.setCellFactory(tc -> new TableCell() {
+                @Override
+                protected void updateItem(Object item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) { setText(null); setTooltip(null); return; }
+                    setText(item.toString());
+                    setTooltip(new Tooltip(item.toString()));
+                }
+            });
+        }
     }
 
     private void aplicarColorFilas(TableView<Cita> tabla) {
@@ -117,7 +175,12 @@ public class DashboardAdminController {
 
     private void cargarPacientes() {
         try {
-            tablaPacientes.setItems(FXCollections.observableArrayList(pacienteService.listarPacientes()));
+            ObservableList<Paciente> base = FXCollections.observableArrayList(pacienteService.listarPacientes());
+            filteredPacientes = new FilteredList<>(base, p -> true);
+            SortedList<Paciente> sorted = new SortedList<>(filteredPacientes);
+            sorted.comparatorProperty().bind(tablaPacientes.comparatorProperty());
+            tablaPacientes.setItems(sorted);
+            actualizarContador();
         } catch (RuntimeException exception) {
             mostrarError(lblMensaje, "Error al cargar pacientes.");
         }
@@ -125,7 +188,11 @@ public class DashboardAdminController {
 
     private void cargarMedicos() {
         try {
-            tablaMedicos.setItems(FXCollections.observableArrayList(medicoDAO.obtenerTodos()));
+            ObservableList<Medico> base = FXCollections.observableArrayList(medicoDAO.obtenerTodos());
+            filteredMedicos = new FilteredList<>(base, m -> true);
+            SortedList<Medico> sorted = new SortedList<>(filteredMedicos);
+            sorted.comparatorProperty().bind(tablaMedicos.comparatorProperty());
+            tablaMedicos.setItems(sorted);
         } catch (RuntimeException exception) {
             mostrarError(lblMensajeMedicos, "Error al cargar medicos.");
         }
@@ -133,10 +200,22 @@ public class DashboardAdminController {
 
     private void cargarCitas() {
         try {
-            tablaCitas.setItems(FXCollections.observableArrayList(citaService.todasLasCitas()));
+            ObservableList<Cita> base = FXCollections.observableArrayList(citaService.todasLasCitas());
+            filteredCitas = new FilteredList<>(base, c -> true);
+            SortedList<Cita> sorted = new SortedList<>(filteredCitas);
+            sorted.comparatorProperty().bind(tablaCitas.comparatorProperty());
+            tablaCitas.setItems(sorted);
+            actualizarContador();
         } catch (RuntimeException exception) {
             mostrarError(lblMensajeCitas, "Error al cargar citas.");
         }
+    }
+
+    private void actualizarContador() {
+        long pendientes = filteredCitas == null ? 0
+                : filteredCitas.stream().filter(c -> c.getEstado() == EstadoCita.PENDIENTE).count();
+        long totalPac = filteredPacientes == null ? 0 : filteredPacientes.size();
+        lblContador.setText(totalPac + " pacientes | " + pendientes + " citas pendientes");
     }
 
     @FXML
