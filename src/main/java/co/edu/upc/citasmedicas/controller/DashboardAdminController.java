@@ -18,6 +18,7 @@ import co.edu.upc.citasmedicas.model.Paciente;
 import co.edu.upc.citasmedicas.model.Usuario;
 import co.edu.upc.citasmedicas.service.CitaService;
 import co.edu.upc.citasmedicas.service.DisponibilidadService;
+import co.edu.upc.citasmedicas.service.InasistenciaService;
 import co.edu.upc.citasmedicas.service.PacienteService;
 import co.edu.upc.citasmedicas.service.Session;
 import co.edu.upc.citasmedicas.view.ViewManager;
@@ -58,9 +59,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 
@@ -114,11 +112,6 @@ public class DashboardAdminController {
     private FilteredList<Paciente> filteredPacientes;
     private FilteredList<Medico> filteredMedicos;
     private FilteredList<Cita> filteredCitas;
-    private final ScheduledExecutorService inasistenciasScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "inasistencias-detector");
-        t.setDaemon(true);
-        return t;
-    });
 
     @FXML
     public void initialize() {
@@ -476,7 +469,7 @@ public class DashboardAdminController {
                 try {
                     String espNombre = especialidad.getValue();
                     Especialidad esp = espNombre != null
-                            ? Especialidad.valueOf(espNombre.toUpperCase().replace(' ', '_'))
+                            ? Especialidad.fromNombre(espNombre)
                             : sel.getEspecialidad();
                     return new Medico(
                             sel.getId(),
@@ -570,10 +563,10 @@ public class DashboardAdminController {
         });
 
         List<Medico> medicos = medicoDAO.obtenerTodos();
-        Map<String, String> mapaMedicos = new LinkedHashMap<>();
+        Map<String, Medico> mapaMedicos = new LinkedHashMap<>();
         for (Medico m : medicos) {
             String etiqueta = m.getNombre() + " " + m.getApellido() + " (" + m.getEspecialidad().getNombre() + ")";
-            mapaMedicos.put(etiqueta, m.getId());
+            mapaMedicos.put(etiqueta, m);
         }
         ComboBox<String> cbMedico = new ComboBox<>();
         String medActual = sel.getMedico().getNombre() + " " + sel.getMedico().getApellido()
@@ -582,8 +575,7 @@ public class DashboardAdminController {
 
         cbServicio.valueProperty().addListener((obs, old, sn) -> {
             if (sn == null) return;
-            String enumName = sn.toUpperCase().replace(' ', '_').replace('-', '_').replace('/', '_');
-            ServicioCita serv = ServicioCita.valueOf(enumName);
+            ServicioCita serv = ServicioCita.fromNombre(sn);
             cbMedico.setItems(FXCollections.observableArrayList());
             for (Medico m : medicoDAO.obtenerTodos()) {
                 if (m.getEspecialidad() == serv.getEspecialidadRequerida()) {
@@ -607,12 +599,10 @@ public class DashboardAdminController {
         Runnable cargarHoras = () -> {
             LocalDate fecha = dpFecha.getValue();
             if (fecha == null || cbServicio.getValue() == null || cbMedico.getValue() == null) return;
-            String servEnum = cbServicio.getValue().toUpperCase().replace(' ', '_')
-                    .replace('-', '_').replace('/', '_');
-            ServicioCita serv = ServicioCita.valueOf(servEnum);
+            ServicioCita serv = ServicioCita.fromNombre(cbServicio.getValue());
             String medKey = cbMedico.getValue();
-            String medId = mapaMedicos.get(medKey);
-            if (medId == null) return;
+            Medico med = mapaMedicos.get(medKey);
+            if (med == null) return;
 
             int duracion = "Control".equals(cbTipoConsulta.getValue())
                     ? serv.getDuracionControlMinutos()
@@ -620,7 +610,7 @@ public class DashboardAdminController {
             Task<List<LocalTime>> task = new Task<>() {
                 @Override
                 protected List<LocalTime> call() {
-                    return disponibilidadService.obtenerHorasDisponibles(medId, fecha, duracion);
+                    return disponibilidadService.obtenerHorasDisponibles(med.getId(), fecha, duracion);
                 }
             };
             task.setOnSucceeded(e2 -> {
@@ -673,15 +663,11 @@ public class DashboardAdminController {
                 try {
                     String servicioNombre = cbServicio.getValue();
                     if (servicioNombre == null) return null;
-                    String servicioEnum = servicioNombre.toUpperCase().replace(' ', '_')
-                            .replace('-', '_').replace('/', '_');
-                    ServicioCita servicio = ServicioCita.valueOf(servicioEnum);
+                    ServicioCita servicio = ServicioCita.fromNombre(servicioNombre);
 
                     String medKey = cbMedico.getValue();
                     if (medKey == null) return null;
-                    String medicoId = mapaMedicos.get(medKey);
-                    if (medicoId == null) return null;
-                    Medico medico = medicoDAO.buscarPorId(medicoId);
+                    Medico medico = mapaMedicos.get(medKey);
                     if (medico == null) return null;
 
                     String tipoConsulta = cbTipoConsulta.getValue();
@@ -690,7 +676,7 @@ public class DashboardAdminController {
                             : servicio.getDuracionMinutos();
 
                     String tipoNombre = cbTipo.getValue();
-                    TipoCita tipo = TipoCita.valueOf(tipoNombre.toUpperCase().replace(' ', '_'));
+                    TipoCita tipo = TipoCita.fromNombre(tipoNombre);
 
                     return new Cita(
                             sel.getId(),
@@ -828,7 +814,7 @@ public class DashboardAdminController {
         cbMedico.setPromptText("Selecciona medico");
         cbMedico.setDisable(true);
 
-        Map<String, String> mapaMedicos = new LinkedHashMap<>();
+        Map<String, Medico> mapaMedicos = new LinkedHashMap<>();
 
         cbCategoria.valueProperty().addListener((obs, old, grupo) -> {
             if (grupo != null) {
@@ -848,15 +834,14 @@ public class DashboardAdminController {
                 return;
             }
             cbMedico.setDisable(false);
-            String enumName = servicioNombre.toUpperCase().replace(' ', '_').replace('-', '_').replace('/', '_');
-            ServicioCita serv = ServicioCita.valueOf(enumName);
+            ServicioCita serv = ServicioCita.fromNombre(servicioNombre);
             mapaMedicos.clear();
             List<Medico> docs = medicoDAO.obtenerTodos().stream()
                     .filter(m -> m.getEspecialidad() == serv.getEspecialidadRequerida())
                     .toList();
             for (Medico m : docs) {
                 String etiqueta = m.getNombre() + " " + m.getApellido() + " (" + m.getEspecialidad().getNombre() + ")";
-                mapaMedicos.put(etiqueta, m.getId());
+                mapaMedicos.put(etiqueta, m);
             }
             cbMedico.setItems(FXCollections.observableArrayList(mapaMedicos.keySet()));
         });
@@ -893,12 +878,10 @@ public class DashboardAdminController {
                 cbHora.getItems().clear();
                 return;
             }
-            String servEnum = cbServicio.getValue().toUpperCase().replace(' ', '_')
-                    .replace('-', '_').replace('/', '_');
-            ServicioCita serv = ServicioCita.valueOf(servEnum);
+            ServicioCita serv = ServicioCita.fromNombre(cbServicio.getValue());
             String medKey = cbMedico.getValue();
-            String medId = mapaMedicos.get(medKey);
-            if (medId == null) {
+            Medico med = mapaMedicos.get(medKey);
+            if (med == null) {
                 cbHora.setDisable(true);
                 cbHora.getItems().clear();
                 return;
@@ -910,7 +893,7 @@ public class DashboardAdminController {
             Task<List<LocalTime>> task = new Task<>() {
                 @Override
                 protected List<LocalTime> call() {
-                    return disponibilidadService.obtenerHorasDisponibles(medId, fecha, duracion);
+                    return disponibilidadService.obtenerHorasDisponibles(med.getId(), fecha, duracion);
                 }
             };
             task.setOnSucceeded(e2 -> {
@@ -977,15 +960,12 @@ public class DashboardAdminController {
                 esSobrecupo[0] = chkSobrecupo.isSelected();
 
                 try {
-                    String servicioEnum = servicioNombre.toUpperCase().replace(' ', '_')
-                            .replace('-', '_').replace('/', '_');
-                    ServicioCita servicio = ServicioCita.valueOf(servicioEnum);
+                    ServicioCita servicio = ServicioCita.fromNombre(servicioNombre);
 
                     String pacienteId = mapaPacientes.get(pacKey);
-                    String medicoId = mapaMedicos.get(medKey);
+                    Medico medico = mapaMedicos.get(medKey);
                     Paciente paciente = pacienteService.listarPacientes().stream()
                             .filter(p -> p.getId().equals(pacienteId)).findFirst().orElse(null);
-                    Medico medico = medicoDAO.buscarPorId(medicoId);
 
                     if (paciente == null || medico == null) return null;
 
@@ -993,9 +973,7 @@ public class DashboardAdminController {
                             ? servicio.getDuracionControlMinutos()
                             : servicio.getDuracionMinutos();
 
-                    String tipoEnum = tipoNombre.toUpperCase().replace(' ', '_')
-                            .replace('-', '_').replace('/', '_');
-                    TipoCita tipo = TipoCita.valueOf(tipoEnum);
+                    TipoCita tipo = TipoCita.fromNombre(tipoNombre);
 
                     return new Cita(
                             UUID.randomUUID().toString().substring(0, 8),
@@ -1068,10 +1046,10 @@ public class DashboardAdminController {
         form.setVgap(10);
 
         ComboBox<String> cbMedico = new ComboBox<>();
-        Map<String, String> mapaMedicosBloq = new LinkedHashMap<>();
+        Map<String, Medico> mapaMedicosBloq = new LinkedHashMap<>();
         for (Medico m : medicoDAO.obtenerTodos()) {
             String etiqueta = m.getNombre() + " " + m.getApellido() + " (" + m.getEspecialidad().getNombre() + ")";
-            mapaMedicosBloq.put(etiqueta, m.getId());
+            mapaMedicosBloq.put(etiqueta, m);
         }
         cbMedico.setItems(FXCollections.observableArrayList(mapaMedicosBloq.keySet()));
         cbMedico.setPromptText("Selecciona medico");
@@ -1148,13 +1126,16 @@ public class DashboardAdminController {
                 btnAgregarBloqueo.setDisable(true);
             }
             actualizarListaBloqueos(itemsBloqueos, listaBloqueos,
-                    mapaMedicosBloq.get(val), dpFecha.getValue(), btnEliminarBloqueo);
+                    val != null ? mapaMedicosBloq.get(val).getId() : null,
+                    dpFecha.getValue(), btnEliminarBloqueo);
         });
 
         dpFecha.valueProperty().addListener((obs, old, val) -> {
             btnAgregarBloqueo.setDisable(val == null || cbMedico.getValue() == null);
+            String medKeyBloq = cbMedico.getValue();
             actualizarListaBloqueos(itemsBloqueos, listaBloqueos,
-                    mapaMedicosBloq.get(cbMedico.getValue()), val, btnEliminarBloqueo);
+                    medKeyBloq != null ? mapaMedicosBloq.get(medKeyBloq).getId() : null,
+                    val, btnEliminarBloqueo);
         });
 
         listaBloqueos.getSelectionModel().selectedItemProperty().addListener((obs, old, val) -> {
@@ -1171,7 +1152,8 @@ public class DashboardAdminController {
                 return;
             }
 
-            String medicoId = mapaMedicosBloq.get(medKey);
+            Medico medBloq = mapaMedicosBloq.get(medKey);
+            String medicoId = medBloq.getId();
             LocalTime horaInicio = chkDiaCompleto.isSelected() ? null
                     : (cbHoraInicio.getValue() != null ? LocalTime.parse(cbHoraInicio.getValue()) : null);
             LocalTime horaFin = chkDiaCompleto.isSelected() ? null
@@ -1217,8 +1199,10 @@ public class DashboardAdminController {
             String bloqueoId = item.substring(0, item.indexOf(" |"));
             try {
                 bloqueoAgendaDAO.eliminar(bloqueoId);
+                String medKeyBloq = cbMedico.getValue();
                 actualizarListaBloqueos(itemsBloqueos, listaBloqueos,
-                        mapaMedicosBloq.get(cbMedico.getValue()), dpFecha.getValue(), btnEliminarBloqueo);
+                        medKeyBloq != null ? mapaMedicosBloq.get(medKeyBloq).getId() : null,
+                        dpFecha.getValue(), btnEliminarBloqueo);
                 mostrarExito(lblMensajeCitas, "Bloqueo eliminado.");
             } catch (IllegalArgumentException | IllegalStateException ex) {
                 mostrarError(lblMensajeCitas, ex.getMessage());
@@ -1248,13 +1232,7 @@ public class DashboardAdminController {
     }
 
     private void iniciarDeteccionInasistencias() {
-        Runnable tarea = () -> {
-            try {
-                citaService.autoDetectarInasistencias();
-            } catch (Exception ignored) {
-            }
-        };
-        inasistenciasScheduler.scheduleWithFixedDelay(tarea, 0, 5, TimeUnit.MINUTES);
+        InasistenciaService.getInstance().iniciar(citaService);
     }
 
     @FXML
@@ -1270,10 +1248,10 @@ public class DashboardAdminController {
         content.setPadding(new Insets(16));
 
         ComboBox<String> cbMedico = new ComboBox<>();
-        Map<String, String> mapaMedicos = new LinkedHashMap<>();
+        Map<String, Medico> mapaMedicos = new LinkedHashMap<>();
         for (Medico m : medicoDAO.obtenerTodos()) {
             String etiqueta = m.getNombre() + " " + m.getApellido() + " (" + m.getEspecialidad().getNombre() + ")";
-            mapaMedicos.put(etiqueta, m.getId());
+            mapaMedicos.put(etiqueta, m);
         }
         cbMedico.setItems(FXCollections.observableArrayList(mapaMedicos.keySet()));
         cbMedico.setPromptText("Selecciona medico");
@@ -1307,8 +1285,8 @@ public class DashboardAdminController {
 
         cbMedico.valueProperty().addListener((obs, old, medKey) -> {
             if (medKey == null) return;
-            String medId = mapaMedicos.get(medKey);
-            listaHorarios.setAll(agendaMedicaDAO.listarPorMedico(medId));
+            Medico med = mapaMedicos.get(medKey);
+            listaHorarios.setAll(agendaMedicaDAO.listarPorMedico(med.getId()));
             tablaHorarios.setItems(listaHorarios);
         });
 
@@ -1370,13 +1348,14 @@ public class DashboardAdminController {
             LocalTime fin = LocalTime.parse(hFin);
             if (!fin.isAfter(ini)) { mostrarError(lblMensaje, "La hora fin debe ser posterior a inicio."); return; }
 
-            AgendaMedica existente = agendaMedicaDAO.obtenerPorMedicoYDia(mapaMedicos.get(medKey), dia);
+            Medico medHor = mapaMedicos.get(medKey);
+            String medId = medHor.getId();
+            AgendaMedica existente = agendaMedicaDAO.obtenerPorMedicoYDia(medId, dia);
             if (existente != null) {
                 if (!confirmar("Ya existe un horario para este dia. Sobrescribir?")) return;
                 agendaMedicaDAO.eliminar(existente.getId());
             }
 
-            String medId = mapaMedicos.get(medKey);
             agendaMedicaDAO.guardar(new AgendaMedica(
                     UUID.randomUUID().toString().substring(0, 8),
                     medId, dia, ini, fin, slot));
@@ -1391,7 +1370,8 @@ public class DashboardAdminController {
             agendaMedicaDAO.eliminar(sel.getId());
             String medKey = cbMedico.getValue();
             if (medKey != null) {
-                listaHorarios.setAll(agendaMedicaDAO.listarPorMedico(mapaMedicos.get(medKey)));
+                Medico medHor = mapaMedicos.get(medKey);
+                listaHorarios.setAll(agendaMedicaDAO.listarPorMedico(medHor.getId()));
             }
             mostrarExito(lblMensaje, "Horario eliminado.");
         });

@@ -29,4 +29,8 @@ public enum Especialidad {
         }
         return builder.toString();
     }
+
+    public static Especialidad fromNombre(String nombre) {
+        return valueOf(nombre.toUpperCase().replace(' ', '_').replace('-', '_').replace('/', '_'));
+    }
 }

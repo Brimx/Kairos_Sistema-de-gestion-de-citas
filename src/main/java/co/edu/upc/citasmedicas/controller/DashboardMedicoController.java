@@ -17,6 +17,7 @@ import co.edu.upc.citasmedicas.model.Medico;
 import co.edu.upc.citasmedicas.model.Paciente;
 import co.edu.upc.citasmedicas.service.CitaService;
 import co.edu.upc.citasmedicas.service.DisponibilidadService;
+import co.edu.upc.citasmedicas.service.InasistenciaService;
 import co.edu.upc.citasmedicas.service.Session;
 import co.edu.upc.citasmedicas.view.ViewManager;
 
@@ -65,9 +66,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class DashboardMedicoController {
@@ -102,12 +100,6 @@ public class DashboardMedicoController {
     private CalendarSource calendarSource;
     private ObservableList<Cita> listaCitas = FXCollections.observableArrayList();
     private FilteredList<Cita> filteredCitas;
-    private final ScheduledExecutorService inasistenciasScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "inasistencias-detector");
-        t.setDaemon(true);
-        return t;
-    });
-
     @FXML
     public void initialize() {
         Medico medico = (Medico) Session.getUsuarioActual();
@@ -605,7 +597,7 @@ public class DashboardMedicoController {
                 try {
                     String espNombre = especialidad.getValue();
                     Especialidad esp = espNombre != null
-                            ? Especialidad.valueOf(espNombre.toUpperCase().replace(' ', '_'))
+                            ? Especialidad.fromNombre(espNombre)
                             : medico.getEspecialidad();
                     return new Medico(
                             medico.getId(),
@@ -717,7 +709,7 @@ public class DashboardMedicoController {
             if (btn == btnGuardar) {
                 try {
                     String tipoNombre = cbTipo.getValue();
-                    TipoCita tipo = TipoCita.valueOf(tipoNombre.toUpperCase().replace(' ', '_'));
+                    TipoCita tipo = TipoCita.fromNombre(tipoNombre);
                     return new Cita(
                             sel.getId(),
                             sel.getPaciente(), sel.getMedico(),
@@ -819,9 +811,7 @@ public class DashboardMedicoController {
 
         dpFecha.valueProperty().addListener((obs, old, fecha) -> {
             if (fecha != null && cbServicio.getValue() != null) {
-                String servEnum = cbServicio.getValue().toUpperCase().replace(' ', '_')
-                        .replace('-', '_').replace('/', '_');
-                ServicioCita serv = ServicioCita.valueOf(servEnum);
+                ServicioCita serv = ServicioCita.fromNombre(cbServicio.getValue());
 
                 int duracion = serv.getDuracionControlMinutos();
                 Task<List<LocalTime>> task = new Task<>() {
@@ -891,18 +881,14 @@ public class DashboardMedicoController {
                 esSobrecupo[0] = chkSobrecupo.isSelected();
 
                 try {
-                    String servEnum = servicioNombre.toUpperCase().replace(' ', '_')
-                            .replace('-', '_').replace('/', '_');
-                    ServicioCita serv = ServicioCita.valueOf(servEnum);
+                    ServicioCita serv = ServicioCita.fromNombre(servicioNombre);
 
                     String pacienteId = mapaPacientes.get(pacKey);
                     Paciente paciente = pacienteDAO.buscarPorId(pacienteId);
 
                     if (paciente == null) return null;
 
-                    String tipoEnum = tipoNombre.toUpperCase().replace(' ', '_')
-                            .replace('-', '_').replace('/', '_');
-                    TipoCita tipo = TipoCita.valueOf(tipoEnum);
+                    TipoCita tipo = TipoCita.fromNombre(tipoNombre);
 
                     return new Cita(
                             UUID.randomUUID().toString().substring(0, 8),
@@ -938,13 +924,7 @@ public class DashboardMedicoController {
     }
 
     private void iniciarDeteccionInasistencias() {
-        Runnable tarea = () -> {
-            try {
-                citaService.autoDetectarInasistencias();
-            } catch (Exception ignored) {
-            }
-        };
-        inasistenciasScheduler.scheduleWithFixedDelay(tarea, 0, 5, TimeUnit.MINUTES);
+        InasistenciaService.getInstance().iniciar(citaService);
     }
 
     @FXML

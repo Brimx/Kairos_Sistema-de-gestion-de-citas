@@ -11,6 +11,7 @@ import co.edu.upc.citasmedicas.model.Medico;
 import co.edu.upc.citasmedicas.model.Paciente;
 import co.edu.upc.citasmedicas.service.CitaService;
 import co.edu.upc.citasmedicas.service.DisponibilidadService;
+import co.edu.upc.citasmedicas.service.InasistenciaService;
 import co.edu.upc.citasmedicas.service.Session;
 import co.edu.upc.citasmedicas.view.ViewManager;
 
@@ -54,9 +55,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+
 import java.util.stream.Collectors;
 
 public class DashboardPacienteController {
@@ -90,15 +89,10 @@ public class DashboardPacienteController {
     private final MedicoDAO medicoDAO = new MedicoDAO();
     private final PacienteDAO pacienteDAO = new PacienteDAO();
     private final DisponibilidadService disponibilidadService = new DisponibilidadService();
-    private final Map<String, String> mapaIdsMedicos = new LinkedHashMap<>();
+    private final Map<String, Medico> mapaMedicos = new LinkedHashMap<>();
     private ServicioCita servicioSeleccionado;
     private CalendarView calendarView;
     private CalendarSource calendarSource;
-    private final ScheduledExecutorService inasistenciasScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "inasistencias-detector");
-        t.setDaemon(true);
-        return t;
-    });
 
     @FXML
     public void initialize() {
@@ -134,8 +128,7 @@ public class DashboardPacienteController {
 
         cbServicio.valueProperty().addListener((obs, old, servicioNombre) -> {
             if (servicioNombre != null) {
-                servicioSeleccionado = ServicioCita.valueOf(servicioNombre.toUpperCase().replace(' ', '_')
-                        .replace('-', '_').replace('/', '_'));
+                servicioSeleccionado = ServicioCita.fromNombre(servicioNombre);
                 filtrarMedicosPorEspecialidad(servicioSeleccionado.getEspecialidadRequerida());
                 cbMedico.setDisable(false);
                 dateFecha.setDisable(true);
@@ -204,7 +197,7 @@ public class DashboardPacienteController {
 
     private void filtrarMedicosPorEspecialidad(co.edu.upc.citasmedicas.enums.Especialidad esp) {
         cbMedico.setItems(FXCollections.observableArrayList());
-        mapaIdsMedicos.clear();
+        mapaMedicos.clear();
         try {
             List<Medico> medicos = medicoDAO.obtenerTodos().stream()
                     .filter(m -> m.getEspecialidad() == esp)
@@ -212,9 +205,9 @@ public class DashboardPacienteController {
             for (Medico medico : medicos) {
                 String etiqueta = medico.getNombre() + " " + medico.getApellido()
                         + " (" + medico.getEspecialidad().getNombre() + ")";
-                mapaIdsMedicos.put(etiqueta, medico.getId());
+                mapaMedicos.put(etiqueta, medico);
             }
-            cbMedico.setItems(FXCollections.observableArrayList(mapaIdsMedicos.keySet()));
+            cbMedico.setItems(FXCollections.observableArrayList(mapaMedicos.keySet()));
         } catch (RuntimeException exception) {
             mostrarError(lblMensaje, "Error al cargar medicos.");
         }
@@ -322,15 +315,15 @@ public class DashboardPacienteController {
         String medicoKey = cbMedico.getValue();
         if (medicoKey == null || servicioSeleccionado == null) return;
 
-        String medicoId = mapaIdsMedicos.get(medicoKey);
-        if (medicoId == null) return;
+        Medico medico = mapaMedicos.get(medicoKey);
+        if (medico == null) return;
 
         int duracion = servicioSeleccionado.getDuracionMinutos();
 
         Task<List<LocalTime>> task = new Task<>() {
             @Override
             protected List<LocalTime> call() {
-                return disponibilidadService.obtenerHorasDisponibles(medicoId, fecha, duracion);
+                return disponibilidadService.obtenerHorasDisponibles(medico.getId(), fecha, duracion);
             }
         };
 
@@ -360,11 +353,11 @@ public class DashboardPacienteController {
     private void cargarMedicos() {
         try {
             List<Medico> medicos = medicoDAO.obtenerTodos();
-            mapaIdsMedicos.clear();
+            mapaMedicos.clear();
             for (Medico medico : medicos) {
                 String etiqueta = medico.getNombre() + " " + medico.getApellido()
                         + " (" + medico.getEspecialidad().getNombre() + ")";
-                mapaIdsMedicos.put(etiqueta, medico.getId());
+                mapaMedicos.put(etiqueta, medico);
             }
         } catch (RuntimeException exception) {
             mostrarError(lblMensaje, "Error al cargar medicos.");
@@ -424,23 +417,18 @@ public class DashboardPacienteController {
         }
 
         try {
-            String servicioEnum = servicioNombre.toUpperCase().replace(' ', '_')
-                    .replace('-', '_').replace('/', '_');
-            ServicioCita servicio = ServicioCita.valueOf(servicioEnum);
+            ServicioCita servicio = ServicioCita.fromNombre(servicioNombre);
 
             LocalTime horaInicio = LocalTime.parse(hora);
-            String medicoId = mapaIdsMedicos.get(medicoKey);
+            Medico medico = mapaMedicos.get(medicoKey);
             Paciente paciente = (Paciente) Session.getUsuarioActual();
-            Medico medico = medicoDAO.buscarPorId(medicoId);
 
             if (paciente == null || medico == null) {
                 mostrarError(lblMensaje, "No se pudo cargar paciente o medico.");
                 return;
             }
 
-            String tipoEnum = tipoNombre.toUpperCase().replace(' ', '_')
-                    .replace('-', '_').replace('/', '_');
-            TipoCita tipo = TipoCita.valueOf(tipoEnum);
+            TipoCita tipo = TipoCita.fromNombre(tipoNombre);
 
             Cita cita = new Cita(
                     UUID.randomUUID().toString(),
@@ -593,12 +581,6 @@ public class DashboardPacienteController {
     }
 
     private void iniciarDeteccionInasistencias() {
-        Runnable tarea = () -> {
-            try {
-                citaService.autoDetectarInasistencias();
-            } catch (Exception ignored) {
-            }
-        };
-        inasistenciasScheduler.scheduleWithFixedDelay(tarea, 0, 5, TimeUnit.MINUTES);
+        InasistenciaService.getInstance().iniciar(citaService);
     }
 }

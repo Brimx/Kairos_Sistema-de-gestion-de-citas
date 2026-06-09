@@ -13,4 +13,8 @@ public enum TipoCita {
     public String getNombre() {
         return nombre;
     }
+
+    public static TipoCita fromNombre(String nombre) {
+        return valueOf(nombre.toUpperCase().replace(' ', '_').replace('-', '_').replace('/', '_'));
+    }
 }

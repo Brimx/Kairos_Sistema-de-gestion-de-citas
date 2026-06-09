@@ -87,4 +87,8 @@ public enum ServicioCita {
         }
         return new ArrayList<>(set);
     }
+
+    public static ServicioCita fromNombre(String nombre) {
+        return valueOf(nombre.toUpperCase().replace(' ', '_').replace('-', '_').replace('/', '_'));
+    }
 }
