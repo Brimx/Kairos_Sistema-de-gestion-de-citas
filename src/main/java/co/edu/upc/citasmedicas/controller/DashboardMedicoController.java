@@ -822,7 +822,6 @@ public class DashboardMedicoController {
                 String servEnum = cbServicio.getValue().toUpperCase().replace(' ', '_')
                         .replace('-', '_').replace('/', '_');
                 ServicioCita serv = ServicioCita.valueOf(servEnum);
-                if (serv == null) return;
 
                 int duracion = serv.getDuracionControlMinutos();
                 Task<List<LocalTime>> task = new Task<>() {

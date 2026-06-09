@@ -584,7 +584,6 @@ public class DashboardAdminController {
             if (sn == null) return;
             String enumName = sn.toUpperCase().replace(' ', '_').replace('-', '_').replace('/', '_');
             ServicioCita serv = ServicioCita.valueOf(enumName);
-            if (serv == null) return;
             cbMedico.setItems(FXCollections.observableArrayList());
             for (Medico m : medicoDAO.obtenerTodos()) {
                 if (m.getEspecialidad() == serv.getEspecialidadRequerida()) {
@@ -613,7 +612,7 @@ public class DashboardAdminController {
             ServicioCita serv = ServicioCita.valueOf(servEnum);
             String medKey = cbMedico.getValue();
             String medId = mapaMedicos.get(medKey);
-            if (serv == null || medId == null) return;
+            if (medId == null) return;
 
             int duracion = "Control".equals(cbTipoConsulta.getValue())
                     ? serv.getDuracionControlMinutos()
@@ -851,7 +850,6 @@ public class DashboardAdminController {
             cbMedico.setDisable(false);
             String enumName = servicioNombre.toUpperCase().replace(' ', '_').replace('-', '_').replace('/', '_');
             ServicioCita serv = ServicioCita.valueOf(enumName);
-            if (serv == null) return;
             mapaMedicos.clear();
             List<Medico> docs = medicoDAO.obtenerTodos().stream()
                     .filter(m -> m.getEspecialidad() == serv.getEspecialidadRequerida())
@@ -900,7 +898,7 @@ public class DashboardAdminController {
             ServicioCita serv = ServicioCita.valueOf(servEnum);
             String medKey = cbMedico.getValue();
             String medId = mapaMedicos.get(medKey);
-            if (serv == null || medId == null) {
+            if (medId == null) {
                 cbHora.setDisable(true);
                 cbHora.getItems().clear();
                 return;

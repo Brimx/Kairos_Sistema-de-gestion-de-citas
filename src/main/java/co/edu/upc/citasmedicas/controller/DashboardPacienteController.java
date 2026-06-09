@@ -136,7 +136,6 @@ public class DashboardPacienteController {
             if (servicioNombre != null) {
                 servicioSeleccionado = ServicioCita.valueOf(servicioNombre.toUpperCase().replace(' ', '_')
                         .replace('-', '_').replace('/', '_'));
-                if (servicioSeleccionado == null) return;
                 filtrarMedicosPorEspecialidad(servicioSeleccionado.getEspecialidadRequerida());
                 cbMedico.setDisable(false);
                 dateFecha.setDisable(true);
@@ -431,7 +430,7 @@ public class DashboardPacienteController {
 
             LocalTime horaInicio = LocalTime.parse(hora);
             String medicoId = mapaIdsMedicos.get(medicoKey);
-            Paciente paciente = pacienteDAO.buscarPorId(Session.getUsuarioActual().getId());
+            Paciente paciente = (Paciente) Session.getUsuarioActual();
             Medico medico = medicoDAO.buscarPorId(medicoId);
 
             if (paciente == null || medico == null) {
