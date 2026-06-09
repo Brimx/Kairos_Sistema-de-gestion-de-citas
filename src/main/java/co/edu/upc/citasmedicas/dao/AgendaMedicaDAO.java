@@ -58,6 +58,43 @@ public class AgendaMedicaDAO {
         return null;
     }
 
+    public void actualizar(AgendaMedica agenda) {
+        String sql = """
+                UPDATE agenda_medica
+                SET dia_semana = ?, hora_inicio = ?, hora_fin = ?, slot_minutos = ?
+                WHERE id = ?
+                """;
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, agenda.getDiaSemana());
+            statement.setString(2, agenda.getHoraInicio().toString());
+            statement.setString(3, agenda.getHoraFin().toString());
+            statement.setInt(4, agenda.getSlotMinutos());
+            statement.setString(5, agenda.getId());
+
+            if (statement.executeUpdate() == 0) {
+                throw new IllegalArgumentException("No existe la agenda con el id indicado");
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudo actualizar la agenda medica", exception);
+        }
+    }
+
+    public void eliminar(String id) {
+        String sql = "DELETE FROM agenda_medica WHERE id = ?";
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, id);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudo eliminar la agenda medica", exception);
+        }
+    }
+
     public List<AgendaMedica> listarPorMedico(String medicoId) {
         String sql = """
                 SELECT id, medico_id, dia_semana, hora_inicio, hora_fin, slot_minutos

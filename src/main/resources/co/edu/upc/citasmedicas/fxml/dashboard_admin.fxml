@@ -15,6 +15,7 @@
             <Region HBox.hgrow="ALWAYS"/>
             <Label fx:id="lblContador" styleClass="header-subtitle"/>
             <Label text="ADMINISTRADOR" styleClass="header-role"/>
+            <Button text="Horarios" onAction="#handleGestionarHorarios" styleClass="btn-ghost"/>
             <Button text="Bloqueos" onAction="#handleGestionarBloqueos" styleClass="btn-ghost"/>
             <Button text="Cerrar Sesion" onAction="#handleCerrarSesion" styleClass="btn-logout"/>
         </HBox>

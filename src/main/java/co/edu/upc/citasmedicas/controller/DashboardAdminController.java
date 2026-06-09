@@ -1,9 +1,11 @@
 package co.edu.upc.citasmedicas.controller;
 
+import co.edu.upc.citasmedicas.dao.AgendaMedicaDAO;
 import co.edu.upc.citasmedicas.dao.BloqueoAgendaDAO;
 import co.edu.upc.citasmedicas.dao.CitaDAO;
 import co.edu.upc.citasmedicas.dao.MedicoDAO;
 import co.edu.upc.citasmedicas.dao.PacienteDAO;
+import co.edu.upc.citasmedicas.model.AgendaMedica;
 import co.edu.upc.citasmedicas.enums.Especialidad;
 import co.edu.upc.citasmedicas.enums.EstadoCita;
 import co.edu.upc.citasmedicas.enums.OrigenCita;
@@ -105,6 +107,7 @@ public class DashboardAdminController {
     private final MedicoDAO medicoDAO = new MedicoDAO();
     private final CitaService citaService = new CitaService();
     private final CitaDAO citaDAO = new CitaDAO();
+    private final AgendaMedicaDAO agendaMedicaDAO = new AgendaMedicaDAO();
     private final BloqueoAgendaDAO bloqueoAgendaDAO = new BloqueoAgendaDAO();
     private final DisponibilidadService disponibilidadService = new DisponibilidadService();
 
@@ -1254,6 +1257,155 @@ public class DashboardAdminController {
             }
         };
         inasistenciasScheduler.scheduleWithFixedDelay(tarea, 0, 5, TimeUnit.MINUTES);
+    }
+
+    @FXML
+    private void handleGestionarHorarios() {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Gestionar Horarios");
+        dialog.setHeaderText("Administrar horarios de atencion de medicos");
+
+        ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().add(btnCerrar);
+
+        VBox content = new VBox(12);
+        content.setPadding(new Insets(16));
+
+        ComboBox<String> cbMedico = new ComboBox<>();
+        Map<String, String> mapaMedicos = new LinkedHashMap<>();
+        for (Medico m : medicoDAO.obtenerTodos()) {
+            String etiqueta = m.getNombre() + " " + m.getApellido() + " (" + m.getEspecialidad().getNombre() + ")";
+            mapaMedicos.put(etiqueta, m.getId());
+        }
+        cbMedico.setItems(FXCollections.observableArrayList(mapaMedicos.keySet()));
+        cbMedico.setPromptText("Selecciona medico");
+
+        TableView<AgendaMedica> tablaHorarios = new TableView<>();
+        tablaHorarios.setPlaceholder(new Label("Selecciona un medico para ver sus horarios"));
+        tablaHorarios.setPrefHeight(200);
+
+        TableColumn<AgendaMedica, String> colDia = new TableColumn<>("Dia");
+        colDia.setPrefWidth(100);
+        colDia.setCellValueFactory(d -> {
+            String[] dias = {"", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"};
+            return new SimpleStringProperty(dias[d.getValue().getDiaSemana()]);
+        });
+
+        TableColumn<AgendaMedica, String> colInicio = new TableColumn<>("Inicio");
+        colInicio.setPrefWidth(80);
+        colInicio.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getHoraInicio().toString()));
+
+        TableColumn<AgendaMedica, String> colFin = new TableColumn<>("Fin");
+        colFin.setPrefWidth(80);
+        colFin.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getHoraFin().toString()));
+
+        TableColumn<AgendaMedica, String> colSlot = new TableColumn<>("Slot (min)");
+        colSlot.setPrefWidth(80);
+        colSlot.setCellValueFactory(d -> new SimpleStringProperty(String.valueOf(d.getValue().getSlotMinutos())));
+
+        tablaHorarios.getColumns().addAll(colDia, colInicio, colFin, colSlot);
+
+        ObservableList<AgendaMedica> listaHorarios = FXCollections.observableArrayList();
+
+        cbMedico.valueProperty().addListener((obs, old, medKey) -> {
+            if (medKey == null) return;
+            String medId = mapaMedicos.get(medKey);
+            listaHorarios.setAll(agendaMedicaDAO.listarPorMedico(medId));
+            tablaHorarios.setItems(listaHorarios);
+        });
+
+        Separator sep = new Separator();
+
+        GridPane form = new GridPane();
+        form.setHgap(10);
+        form.setVgap(10);
+
+        ComboBox<String> cbDia = new ComboBox<>();
+        cbDia.setItems(FXCollections.observableArrayList(
+                "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"));
+        cbDia.setPromptText("Dia");
+
+        ComboBox<String> cbHoraInicio = new ComboBox<>();
+        cbHoraInicio.setPromptText("Inicio");
+        cbHoraInicio.setItems(FXCollections.observableArrayList(
+                "06:00","06:30","07:00","07:30","08:00","08:30","09:00","09:30",
+                "10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30",
+                "14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00"));
+
+        ComboBox<String> cbHoraFin = new ComboBox<>();
+        cbHoraFin.setPromptText("Fin");
+        cbHoraFin.setItems(FXCollections.observableArrayList(
+                "06:00","06:30","07:00","07:30","08:00","08:30","09:00","09:30",
+                "10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30",
+                "14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"));
+
+        ComboBox<Integer> cbSlot = new ComboBox<>();
+        cbSlot.setItems(FXCollections.observableArrayList(15, 20, 30, 45, 60));
+        cbSlot.setPromptText("Slot (min)");
+
+        form.addRow(0, new Label("Dia:"), cbDia, new Label("Inicio:"), cbHoraInicio);
+        form.addRow(1, new Label("Fin:"), cbHoraFin, new Label("Slot:"), cbSlot);
+
+        HBox btnRow = new HBox(10);
+        Button btnAgregar = new Button("Agregar");
+        Button btnEliminar = new Button("Eliminar");
+        btnEliminar.setDisable(true);
+        btnRow.getChildren().addAll(btnAgregar, btnEliminar);
+
+        tablaHorarios.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
+            btnEliminar.setDisable(sel == null);
+        });
+
+        btnAgregar.setOnAction(e -> {
+            String medKey = cbMedico.getValue();
+            if (medKey == null) { mostrarError(lblMensaje, "Selecciona un medico."); return; }
+            Integer diaIdx = cbDia.getSelectionModel().getSelectedIndex();
+            if (diaIdx < 0) { mostrarError(lblMensaje, "Selecciona un dia."); return; }
+            int dia = diaIdx + 1;
+            String hIni = cbHoraInicio.getValue();
+            String hFin = cbHoraFin.getValue();
+            Integer slot = cbSlot.getValue();
+            if (hIni == null || hFin == null || slot == null) {
+                mostrarError(lblMensaje, "Completa inicio, fin y slot."); return;
+            }
+            LocalTime ini = LocalTime.parse(hIni);
+            LocalTime fin = LocalTime.parse(hFin);
+            if (!fin.isAfter(ini)) { mostrarError(lblMensaje, "La hora fin debe ser posterior a inicio."); return; }
+
+            AgendaMedica existente = agendaMedicaDAO.obtenerPorMedicoYDia(mapaMedicos.get(medKey), dia);
+            if (existente != null) {
+                if (!confirmar("Ya existe un horario para este dia. Sobrescribir?")) return;
+                agendaMedicaDAO.eliminar(existente.getId());
+            }
+
+            String medId = mapaMedicos.get(medKey);
+            agendaMedicaDAO.guardar(new AgendaMedica(
+                    UUID.randomUUID().toString().substring(0, 8),
+                    medId, dia, ini, fin, slot));
+            listaHorarios.setAll(agendaMedicaDAO.listarPorMedico(medId));
+            mostrarExito(lblMensaje, "Horario agregado.");
+        });
+
+        btnEliminar.setOnAction(e -> {
+            AgendaMedica sel = tablaHorarios.getSelectionModel().getSelectedItem();
+            if (sel == null) return;
+            if (!confirmar("Eliminar el horario del dia seleccionado?")) return;
+            agendaMedicaDAO.eliminar(sel.getId());
+            String medKey = cbMedico.getValue();
+            if (medKey != null) {
+                listaHorarios.setAll(agendaMedicaDAO.listarPorMedico(mapaMedicos.get(medKey)));
+            }
+            mostrarExito(lblMensaje, "Horario eliminado.");
+        });
+
+        content.getChildren().addAll(cbMedico, tablaHorarios, sep, form, btnRow);
+        dialog.getDialogPane().setContent(content);
+        dialog.showAndWait();
+    }
+
+    private boolean confirmar(String mensaje) {
+        Alert a = new Alert(Alert.AlertType.CONFIRMATION, mensaje, ButtonType.YES, ButtonType.NO);
+        return a.showAndWait().orElse(ButtonType.NO) == ButtonType.YES;
     }
 
     @FXML
