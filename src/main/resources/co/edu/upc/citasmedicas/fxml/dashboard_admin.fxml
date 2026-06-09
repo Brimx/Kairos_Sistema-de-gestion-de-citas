@@ -15,6 +15,7 @@
             <Region HBox.hgrow="ALWAYS"/>
             <Label fx:id="lblContador" styleClass="header-subtitle"/>
             <Label text="ADMINISTRADOR" styleClass="header-role"/>
+            <Button text="Bloqueos" onAction="#handleGestionarBloqueos" styleClass="btn-ghost"/>
             <Button text="Cerrar Sesion" onAction="#handleCerrarSesion" styleClass="btn-logout"/>
         </HBox>
     </top>
@@ -101,6 +102,7 @@
                         <Button text="Modificar cita" onAction="#handleModificarCita" styleClass="btn-primary"/>
                         <Button text="Confirmar cita" onAction="#handleConfirmarCita" styleClass="btn-success"/>
                         <Button text="Cancelar cita" onAction="#handleCancelarCita" styleClass="btn-danger"/>
+                        <Button text="No Asistio" onAction="#handleNoAsistio" styleClass="btn-danger"/>
                     </HBox>
                     <Label fx:id="lblMensajeCitas" text="" styleClass="feedback-ok"/>
                 </VBox>

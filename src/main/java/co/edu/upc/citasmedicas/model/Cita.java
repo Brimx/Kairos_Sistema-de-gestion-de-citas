@@ -2,6 +2,7 @@ package co.edu.upc.citasmedicas.model;
 
 import co.edu.upc.citasmedicas.enums.Especialidad;
 import co.edu.upc.citasmedicas.enums.EstadoCita;
+import co.edu.upc.citasmedicas.enums.OrigenCita;
 import co.edu.upc.citasmedicas.enums.ServicioCita;
 import co.edu.upc.citasmedicas.enums.TipoCita;
 import java.time.LocalDate;
@@ -17,15 +18,22 @@ public class Cita {
     private LocalDate fecha;
     private LocalTime horaInicio;
     private LocalTime horaFin;
+    private int duracion;
+    private String origen;
+    private boolean sobrecupo;
     private EstadoCita estado;
     private TipoCita tipo;
     private String motivo;
 
-    private static final int DURACION_MINUTOS = 30;
+    public Cita(String id, Paciente paciente, Medico medico,
+                ServicioCita servicio, LocalDate fecha,
+                LocalTime horaInicio, int duracion, TipoCita tipo, String motivo) {
+        this(id, paciente, medico, servicio, fecha, horaInicio, duracion, tipo, motivo, OrigenCita.PACIENTE.name());
+    }
 
     public Cita(String id, Paciente paciente, Medico medico,
                 ServicioCita servicio, LocalDate fecha,
-                LocalTime horaInicio, TipoCita tipo, String motivo) {
+                LocalTime horaInicio, int duracion, TipoCita tipo, String motivo, String origen) {
         this.id = id;
         this.paciente = paciente;
         this.medico = medico;
@@ -33,9 +41,11 @@ public class Cita {
         this.servicio = servicio;
         this.fecha = fecha;
         this.horaInicio = horaInicio;
-        this.horaFin = horaInicio.plusMinutes(DURACION_MINUTOS);
+        this.duracion = duracion;
+        this.horaFin = horaInicio.plusMinutes(duracion);
         this.tipo = tipo;
         this.motivo = motivo;
+        this.origen = origen;
         this.estado = EstadoCita.PENDIENTE;
     }
 
@@ -64,7 +74,28 @@ public class Cita {
     }
 
     public int getDuracionMinutos() {
-        return DURACION_MINUTOS;
+        return duracion;
+    }
+
+    public boolean isSobrecupo() {
+        return sobrecupo;
+    }
+
+    public void setSobrecupo(boolean sobrecupo) {
+        this.sobrecupo = sobrecupo;
+    }
+
+    public void setDuracion(int duracion) {
+        this.duracion = duracion;
+        this.horaFin = this.horaInicio.plusMinutes(duracion);
+    }
+
+    public String getOrigen() {
+        return origen;
+    }
+
+    public void setOrigen(String origen) {
+        this.origen = origen;
     }
 
     @Override
@@ -77,6 +108,9 @@ public class Cita {
                 ", especialidad=" + especialidad +
                 ", fecha=" + fecha +
                 ", hora=" + horaInicio + " - " + horaFin +
+                ", duracion=" + duracion +
+                ", origen=" + origen +
+                ", sobrecupo=" + sobrecupo +
                 ", estado=" + estado +
                 ", tipo=" + tipo +
                 '}';
@@ -101,7 +135,7 @@ public class Cita {
     public void setFecha(LocalDate fecha)           { this.fecha = fecha; }
 
     public LocalTime getHoraInicio()                { return horaInicio; }
-    public void setHoraInicio(LocalTime hora)       { this.horaInicio = hora; }
+    public void setHoraInicio(LocalTime hora)       { this.horaInicio = hora; this.horaFin = hora.plusMinutes(duracion); }
 
     public LocalTime getHoraFin()                   { return horaFin; }
 

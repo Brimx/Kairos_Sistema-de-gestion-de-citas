@@ -49,8 +49,10 @@
                             </columns>
                         </TableView>
                         <HBox spacing="10">
-                            <Button text="Reprogramar cita" onAction="#handleReprogramarCita" styleClass="btn-primary" prefHeight="36"/>
-                            <Button text="Marcar como atendido" onAction="#handleAtender" styleClass="btn-success" prefHeight="36"/>
+                            <Button text="Iniciar Consulta" onAction="#handleIniciarConsulta" styleClass="btn-primary" prefHeight="36"/>
+                            <Button text="Reprogramar" onAction="#handleReprogramarCita" styleClass="btn-ghost" prefHeight="36"/>
+                            <Button text="Atendido" onAction="#handleAtender" styleClass="btn-success" prefHeight="36"/>
+                            <Button text="No Asistio" onAction="#handleNoAsistio" styleClass="btn-danger" prefHeight="36"/>
                         </HBox>
                         <Label fx:id="lblMensaje" text="" styleClass="feedback-ok"/>
                     </VBox>

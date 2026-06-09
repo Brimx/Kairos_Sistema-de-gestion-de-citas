@@ -1,14 +1,20 @@
 package co.edu.upc.citasmedicas.controller;
 
 import co.edu.upc.citasmedicas.dao.CitaDAO;
+import co.edu.upc.citasmedicas.dao.HistorialClinicoDAO;
 import co.edu.upc.citasmedicas.dao.MedicoDAO;
+import co.edu.upc.citasmedicas.dao.PacienteDAO;
 import co.edu.upc.citasmedicas.enums.Especialidad;
 import co.edu.upc.citasmedicas.enums.EstadoCita;
+import co.edu.upc.citasmedicas.enums.OrigenCita;
 import co.edu.upc.citasmedicas.enums.ServicioCita;
 import co.edu.upc.citasmedicas.enums.TipoCita;
 import co.edu.upc.citasmedicas.model.Cita;
+import co.edu.upc.citasmedicas.model.HistorialClinico;
 import co.edu.upc.citasmedicas.model.Medico;
+import co.edu.upc.citasmedicas.model.Paciente;
 import co.edu.upc.citasmedicas.service.CitaService;
+import co.edu.upc.citasmedicas.service.DisponibilidadService;
 import co.edu.upc.citasmedicas.service.Session;
 import co.edu.upc.citasmedicas.view.ViewManager;
 
@@ -24,10 +30,12 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
@@ -36,6 +44,7 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
@@ -47,7 +56,13 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class DashboardMedicoController {
@@ -74,10 +89,18 @@ public class DashboardMedicoController {
     private final CitaService citaService = new CitaService();
     private final MedicoDAO medicoDAO = new MedicoDAO();
     private final CitaDAO citaDAO = new CitaDAO();
+    private final PacienteDAO pacienteDAO = new PacienteDAO();
+    private final HistorialClinicoDAO historialDAO = new HistorialClinicoDAO();
+    private final DisponibilidadService disponibilidadService = new DisponibilidadService();
     private CalendarView calendarView;
     private CalendarSource calendarSource;
     private ObservableList<Cita> listaCitas = FXCollections.observableArrayList();
     private FilteredList<Cita> filteredCitas;
+    private final ScheduledExecutorService inasistenciasScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "inasistencias-detector");
+        t.setDaemon(true);
+        return t;
+    });
 
     @FXML
     public void initialize() {
@@ -127,6 +150,7 @@ public class DashboardMedicoController {
         inicializarCalendario();
         cargarAgenda();
         aplicarColorFilas(tablaAgenda);
+        iniciarDeteccionInasistencias();
     }
 
     private void aplicarColorFilas(TableView<Cita> tabla) {
@@ -134,15 +158,20 @@ public class DashboardMedicoController {
             @Override
             protected void updateItem(Cita item, boolean empty) {
                 super.updateItem(item, empty);
-                getStyleClass().removeAll("row-pendiente", "row-confirmada", "row-completada", "row-cancelada");
+                getStyleClass().removeAll("row-pendiente", "row-confirmada", "row-completada",
+                        "row-cancelada", "row-noasistio", "row-sobrecupo");
                 if (item == null || empty) return;
                 String css = switch (item.getEstado()) {
                     case PENDIENTE -> "row-pendiente";
                     case CONFIRMADA -> "row-confirmada";
                     case COMPLETADA -> "row-completada";
                     case CANCELADA -> "row-cancelada";
+                    case NO_ASISTIO -> "row-noasistio";
                 };
                 getStyleClass().add(css);
+                if (item.isSobrecupo()) {
+                    getStyleClass().add("row-sobrecupo");
+                }
             }
         });
     }
@@ -281,9 +310,123 @@ public class DashboardMedicoController {
     }
 
     @FXML
+    private void handleNoAsistio() {
+        Cita sel = tablaAgenda.getSelectionModel().getSelectedItem();
+        if (sel == null) {
+            mostrarError(lblMensaje, "Selecciona una cita.");
+            return;
+        }
+        Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION,
+                "Marcar como inasistencia la cita de " + sel.getPaciente().getNombre() + "?",
+                ButtonType.YES, ButtonType.NO);
+        dialogo.showAndWait().ifPresent(boton -> {
+            if (boton == ButtonType.YES) {
+                try {
+                    citaService.marcarNoAsistio(sel.getId());
+                    mostrarExito(lblMensaje, "Cita marcada como inasistencia.");
+                    cargarAgenda();
+                } catch (IllegalArgumentException | IllegalStateException exception) {
+                    mostrarError(lblMensaje, exception.getMessage());
+                }
+            }
+        });
+    }
+
+    @FXML
     private void handleActualizar() {
         cargarAgenda();
         mostrarExito(lblMensaje, "Agenda actualizada.");
+    }
+
+    @FXML
+    private void handleIniciarConsulta() {
+        Cita sel = tablaAgenda.getSelectionModel().getSelectedItem();
+        if (sel == null) {
+            mostrarError(lblMensaje, "Selecciona una cita para iniciar consulta.");
+            return;
+        }
+        if (sel.getEstado() != EstadoCita.CONFIRMADA && sel.getEstado() != EstadoCita.PENDIENTE) {
+            mostrarError(lblMensaje, "Solo se puede iniciar consulta en citas pendientes o confirmadas.");
+            return;
+        }
+
+        Dialog<HistorialClinico> dialog = new Dialog<>();
+        dialog.setTitle("Historial Clinico");
+        dialog.setHeaderText("Consulta de " + sel.getPaciente().getNombre() + " " + sel.getPaciente().getApellido()
+                + " - " + sel.getServicio().getNombre());
+
+        ButtonType btnGuardar = new ButtonType("Guardar y finalizar consulta", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(16));
+
+        TextField txtDiagnostico = new TextField();
+        txtDiagnostico.setPromptText("Diagnostico principal");
+
+        TextArea txtEnfermedadActual = new TextArea();
+        txtEnfermedadActual.setPromptText("Enfermedad actual");
+        txtEnfermedadActual.setPrefRowCount(3);
+
+        TextArea txtReceta = new TextArea();
+        txtReceta.setPromptText("Receta / Medicamentos");
+        txtReceta.setPrefRowCount(3);
+
+        TextField txtRemision = new TextField();
+        txtRemision.setPromptText("Remision a especialidad (opcional)");
+
+        TextArea txtNotas = new TextArea();
+        txtNotas.setPromptText("Notas adicionales");
+        txtNotas.setPrefRowCount(3);
+
+        grid.add(new Label("Diagnostico:"), 0, 0);
+        grid.add(txtDiagnostico, 1, 0);
+        grid.add(new Label("Enfermedad actual:"), 0, 1);
+        grid.add(txtEnfermedadActual, 1, 1);
+        grid.add(new Label("Receta:"), 0, 2);
+        grid.add(txtReceta, 1, 2);
+        grid.add(new Label("Remision:"), 0, 3);
+        grid.add(txtRemision, 1, 3);
+        grid.add(new Label("Notas:"), 0, 4);
+        grid.add(txtNotas, 1, 4);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == btnGuardar) {
+                String diagnostico = txtDiagnostico.getText().trim();
+                if (diagnostico.isEmpty()) {
+                    mostrarError(lblMensaje, "El diagnostico es obligatorio.");
+                    return null;
+                }
+                return new HistorialClinico(
+                        UUID.randomUUID().toString().substring(0, 8),
+                        sel.getId(),
+                        sel.getMedico().getId(),
+                        sel.getPaciente().getId(),
+                        LocalDate.now(),
+                        diagnostico,
+                        txtEnfermedadActual.getText().trim(),
+                        txtReceta.getText().trim(),
+                        txtRemision.getText().trim(),
+                        txtNotas.getText().trim()
+                );
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(historial -> {
+            try {
+                historialDAO.guardar(historial);
+                citaService.completarCita(sel.getId());
+                mostrarExito(lblMensaje, "Consulta finalizada. Historial clinico guardado.");
+                cargarAgenda();
+            } catch (IllegalArgumentException | IllegalStateException exception) {
+                mostrarError(lblMensaje, exception.getMessage());
+            }
+        });
     }
 
     @FXML
@@ -381,12 +524,44 @@ public class DashboardMedicoController {
         DatePicker dpFecha = new DatePicker(sel.getFecha());
 
         ComboBox<String> cbHora = new ComboBox<>();
-        cbHora.setItems(FXCollections.observableArrayList(
-                "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
-                "11:00", "11:30", "14:00", "14:30", "15:00", "15:30",
-                "16:00", "16:30", "17:00"
-        ));
-        cbHora.setValue(sel.getHoraInicio().toString());
+        cbHora.setPromptText("Selecciona hora");
+
+        dpFecha.valueProperty().addListener((obs, old, fecha) -> {
+            if (fecha != null) {
+                Medico medico = (Medico) Session.getUsuarioActual();
+                int duracion = sel.getDuracionMinutos();
+                Task<List<LocalTime>> task = new Task<>() {
+                    @Override
+                    protected List<LocalTime> call() {
+                        return disponibilidadService.obtenerHorasDisponibles(medico.getId(), fecha, duracion);
+                    }
+                };
+                task.setOnSucceeded(e2 -> {
+                    List<LocalTime> horas = task.getValue();
+                    if (horas.isEmpty()) {
+                        cbHora.getItems().clear();
+                        cbHora.setPromptText("No hay horas disponibles");
+                    } else {
+                        cbHora.setItems(FXCollections.observableArrayList(
+                                horas.stream().map(LocalTime::toString).collect(Collectors.toList())));
+                        if (horas.contains(sel.getHoraInicio())) {
+                            cbHora.setValue(sel.getHoraInicio().toString());
+                        } else {
+                            cbHora.getSelectionModel().selectFirst();
+                        }
+                    }
+                });
+                new Thread(task).start();
+            }
+        });
+
+        Platform.runLater(() -> {
+            if (dpFecha.getValue() != null) {
+                LocalDate tmp = dpFecha.getValue();
+                dpFecha.setValue(null);
+                dpFecha.setValue(tmp);
+            }
+        });
 
         ComboBox<String> cbTipo = new ComboBox<>();
         cbTipo.setItems(FXCollections.observableArrayList(
@@ -412,8 +587,10 @@ public class DashboardMedicoController {
                             sel.getPaciente(), sel.getMedico(),
                             sel.getServicio(),
                             dpFecha.getValue(), LocalTime.parse(cbHora.getValue()),
+                            sel.getDuracionMinutos(),
                             tipo,
-                            txtMotivo.getText().trim()
+                            txtMotivo.getText().trim(),
+                            sel.getOrigen()
                     );
                 } catch (Exception e) {
                     mostrarError(lblMensaje, "Datos invalidos: " + e.getMessage());
@@ -432,6 +609,207 @@ public class DashboardMedicoController {
                 mostrarError(lblMensaje, exception.getMessage());
             }
         });
+    }
+
+    @FXML
+    private void handleAgendarControl() {
+        Medico medico = (Medico) Session.getUsuarioActual();
+
+        Dialog<Cita> dialog = new Dialog<>();
+        dialog.setTitle("Agendar cita de control");
+        dialog.setHeaderText("Agendar cita de control para Dr(a). " + medico.getNombre() + " " + medico.getApellido());
+
+        ButtonType btnAgendar = new ButtonType("Agendar control", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnAgendar, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(16));
+
+        List<Paciente> pacientes = pacienteDAO.obtenerTodos();
+        Map<String, String> mapaPacientes = new LinkedHashMap<>();
+        for (Paciente p : pacientes) {
+            String etiqueta = p.getNombre() + " " + p.getApellido() + " (" + p.getNumeroDocumento() + ")";
+            mapaPacientes.put(etiqueta, p.getId());
+        }
+        ComboBox<String> cbPaciente = new ComboBox<>();
+        cbPaciente.setItems(FXCollections.observableArrayList(mapaPacientes.keySet()));
+        cbPaciente.setPromptText("Selecciona paciente");
+
+        ComboBox<String> cbCategoria = new ComboBox<>();
+        List<String> grupos = ServicioCita.grupos().stream()
+                .filter(g -> ServicioCita.porGrupo(g).stream()
+                        .anyMatch(s -> s.getEspecialidadRequerida() == medico.getEspecialidad()))
+                .collect(Collectors.toList());
+        cbCategoria.setItems(FXCollections.observableArrayList(grupos));
+        cbCategoria.setPromptText("Selecciona categoria");
+
+        ComboBox<String> cbServicio = new ComboBox<>();
+        cbServicio.setPromptText("Selecciona servicio");
+        cbServicio.setDisable(true);
+
+        cbCategoria.valueProperty().addListener((obs, old, grupo) -> {
+            if (grupo != null) {
+                List<String> servicios = ServicioCita.porGrupo(grupo).stream()
+                        .filter(s -> s.getEspecialidadRequerida() == medico.getEspecialidad())
+                        .map(ServicioCita::getNombre).collect(Collectors.toList());
+                cbServicio.setItems(FXCollections.observableArrayList(servicios));
+                cbServicio.setDisable(false);
+                cbServicio.setValue(null);
+            }
+        });
+
+        DatePicker dpFecha = new DatePicker();
+        dpFecha.setPromptText("Fecha");
+        dpFecha.setDisable(true);
+
+        ComboBox<String> cbHora = new ComboBox<>();
+        cbHora.setPromptText("Hora");
+        cbHora.setDisable(true);
+
+        cbServicio.valueProperty().addListener((obs, old, sn) -> {
+            if (sn != null) {
+                dpFecha.setDisable(false);
+                dpFecha.setValue(null);
+                cbHora.setDisable(true);
+                cbHora.getItems().clear();
+            } else {
+                dpFecha.setDisable(true);
+                cbHora.setDisable(true);
+                cbHora.getItems().clear();
+            }
+        });
+
+        dpFecha.valueProperty().addListener((obs, old, fecha) -> {
+            if (fecha != null && cbServicio.getValue() != null) {
+                String servEnum = cbServicio.getValue().toUpperCase().replace(' ', '_')
+                        .replace('-', '_').replace('/', '_');
+                ServicioCita serv = ServicioCita.valueOf(servEnum);
+                if (serv == null) return;
+
+                int duracion = serv.getDuracionControlMinutos();
+                Task<List<LocalTime>> task = new Task<>() {
+                    @Override
+                    protected List<LocalTime> call() {
+                        return disponibilidadService.obtenerHorasDisponibles(medico.getId(), fecha, duracion);
+                    }
+                };
+                task.setOnSucceeded(e2 -> {
+                    List<LocalTime> horas = task.getValue();
+                    if (horas.isEmpty()) {
+                        cbHora.getItems().clear();
+                        cbHora.setPromptText("No hay horas disponibles");
+                        cbHora.setDisable(true);
+                    } else {
+                        cbHora.setItems(FXCollections.observableArrayList(
+                                horas.stream().map(LocalTime::toString).collect(Collectors.toList())));
+                        cbHora.setDisable(false);
+                        cbHora.getSelectionModel().selectFirst();
+                    }
+                });
+                task.setOnFailed(e2 -> {
+                    cbHora.getItems().clear();
+                    cbHora.setPromptText("Error al cargar horas");
+                    cbHora.setDisable(true);
+                });
+                new Thread(task).start();
+            } else {
+                cbHora.setDisable(true);
+                cbHora.getItems().clear();
+            }
+        });
+
+        ComboBox<String> cbTipo = new ComboBox<>();
+        cbTipo.setItems(FXCollections.observableArrayList(
+                java.util.Arrays.stream(TipoCita.values()).map(TipoCita::getNombre).collect(Collectors.toList())));
+        cbTipo.setValue("Presencial");
+
+        CheckBox chkSobrecupo = new CheckBox("Sobrecupo (saltar disponibilidad)");
+
+        TextField txtMotivo = new TextField();
+        txtMotivo.setPromptText("Motivo del control");
+
+        grid.addRow(0, new Label("Paciente:"), cbPaciente);
+        grid.addRow(1, new Label("Categoria:"), cbCategoria, new Label("Servicio:"), cbServicio);
+        grid.addRow(2, new Label("Fecha:"), dpFecha, new Label("Hora:"), cbHora);
+        grid.addRow(3, new Label("Modalidad:"), cbTipo, new Label("Motivo:"), txtMotivo);
+        grid.addRow(4, chkSobrecupo);
+
+        dialog.getDialogPane().setContent(grid);
+
+        boolean[] esSobrecupo = {false};
+
+        dialog.setResultConverter(btn -> {
+            if (btn == btnAgendar) {
+                String pacKey = cbPaciente.getValue();
+                String servicioNombre = cbServicio.getValue();
+                LocalDate fecha = dpFecha.getValue();
+                String hora = cbHora.getValue();
+                String tipoNombre = cbTipo.getValue();
+                String motivo = txtMotivo.getText();
+
+                if (pacKey == null || servicioNombre == null || fecha == null || hora == null) {
+                    return null;
+                }
+
+                esSobrecupo[0] = chkSobrecupo.isSelected();
+
+                try {
+                    String servEnum = servicioNombre.toUpperCase().replace(' ', '_')
+                            .replace('-', '_').replace('/', '_');
+                    ServicioCita serv = ServicioCita.valueOf(servEnum);
+
+                    String pacienteId = mapaPacientes.get(pacKey);
+                    Paciente paciente = pacienteDAO.buscarPorId(pacienteId);
+
+                    if (paciente == null) return null;
+
+                    String tipoEnum = tipoNombre.toUpperCase().replace(' ', '_')
+                            .replace('-', '_').replace('/', '_');
+                    TipoCita tipo = TipoCita.valueOf(tipoEnum);
+
+                    return new Cita(
+                            UUID.randomUUID().toString().substring(0, 8),
+                            paciente, medico,
+                            serv,
+                            fecha, LocalTime.parse(hora),
+                            serv.getDuracionControlMinutos(),
+                            tipo,
+                            motivo == null || motivo.isBlank() ? "Control medico" : motivo.trim(),
+                            OrigenCita.CONTROL.name()
+                    );
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(cita -> {
+            try {
+                if (esSobrecupo[0]) {
+                    citaService.agendarSobrecupo(cita);
+                    mostrarExito(lblMensaje, "Sobrecupo de control agendado correctamente.");
+                } else {
+                    citaService.agendarCita(cita);
+                    mostrarExito(lblMensaje, "Cita de control agendada correctamente.");
+                }
+                cargarAgenda();
+            } catch (IllegalArgumentException | IllegalStateException exception) {
+                mostrarError(lblMensaje, exception.getMessage());
+            }
+        });
+    }
+
+    private void iniciarDeteccionInasistencias() {
+        Runnable tarea = () -> {
+            try {
+                citaService.autoDetectarInasistencias();
+            } catch (Exception ignored) {
+            }
+        };
+        inasistenciasScheduler.scheduleWithFixedDelay(tarea, 0, 5, TimeUnit.MINUTES);
     }
 
     @FXML

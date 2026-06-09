@@ -49,7 +49,6 @@
                     <TextField fx:id="txtMotivo" promptText="Describe tu motivo (opcional)" styleClass="input-height" maxWidth="Infinity"/>
 
                     <Button text="Agendar cita" onAction="#handleAgendarCita" styleClass="btn-agendar"/>
-                    <Button text="Mis datos" onAction="#handleModificarMisDatos" styleClass="btn-primary" maxWidth="Infinity" prefHeight="36"/>
 
                     <Label fx:id="lblMensaje" text="" wrapText="true" styleClass="feedback-ok"/>
                 </VBox>

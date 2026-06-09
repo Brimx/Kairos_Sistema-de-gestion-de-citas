@@ -9,5 +9,6 @@ public enum EstadoCita {
     PENDIENTE,      // Cita solicitada, aún no confirmada
     CONFIRMADA,     // Cita activa y en agenda
     COMPLETADA,     // El paciente fue atendido
-    CANCELADA       // Cancelada por el paciente o el sistema
+    CANCELADA,      // Cancelada por el paciente o el sistema
+    NO_ASISTIO      // Paciente no asistió a la cita
 }

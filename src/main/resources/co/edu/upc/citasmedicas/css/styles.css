@@ -235,6 +235,15 @@
     -fx-background-color: #fee2e2;
 }
 
+.row-noasistio {
+    -fx-background-color: #e5e7eb;
+}
+
+.row-sobrecupo {
+    -fx-border-color: #e53935;
+    -fx-border-width: 0 0 0 4;
+}
+
 .input-error {
     -fx-border-color: #b91c1c;
     -fx-border-width: 2;

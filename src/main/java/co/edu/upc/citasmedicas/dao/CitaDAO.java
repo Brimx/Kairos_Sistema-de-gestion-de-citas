@@ -2,6 +2,7 @@ package co.edu.upc.citasmedicas.dao;
 
 import co.edu.upc.citasmedicas.enums.Especialidad;
 import co.edu.upc.citasmedicas.enums.EstadoCita;
+import co.edu.upc.citasmedicas.enums.OrigenCita;
 import co.edu.upc.citasmedicas.enums.ServicioCita;
 import co.edu.upc.citasmedicas.enums.TipoCita;
 import co.edu.upc.citasmedicas.model.Cita;
@@ -14,6 +15,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,8 +24,8 @@ public class CitaDAO {
     public void guardar(Cita cita) {
         String sql = """
                 INSERT INTO citas
-                (id, paciente_id, medico_id, especialidad, servicio, fecha, hora_inicio, estado, tipo, motivo)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, paciente_id, medico_id, especialidad, servicio, fecha, hora_inicio, duracion, estado, tipo, motivo, origen, sobrecupo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection connection = DatabaseConnection.getConnection();
@@ -36,9 +38,12 @@ public class CitaDAO {
             statement.setString(5, cita.getServicio().name());
             statement.setString(6, cita.getFecha().toString());
             statement.setString(7, cita.getHoraInicio().toString());
-            statement.setString(8, cita.getEstado().name());
-            statement.setString(9, cita.getTipo().name());
-            statement.setString(10, cita.getMotivo());
+            statement.setInt(8, cita.getDuracionMinutos());
+            statement.setString(9, cita.getEstado().name());
+            statement.setString(10, cita.getTipo().name());
+            statement.setString(11, cita.getMotivo());
+            statement.setString(12, cita.getOrigen());
+            statement.setInt(13, cita.isSobrecupo() ? 1 : 0);
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("No se pudo guardar la cita", exception);
@@ -66,7 +71,7 @@ public class CitaDAO {
     public void actualizarCita(Cita cita) {
         String sql = """
                 UPDATE citas
-                SET medico_id = ?, especialidad = ?, servicio = ?, fecha = ?, hora_inicio = ?, tipo = ?, motivo = ?
+                SET medico_id = ?, especialidad = ?, servicio = ?, fecha = ?, hora_inicio = ?, duracion = ?, tipo = ?, motivo = ?, origen = ?, sobrecupo = ?
                 WHERE id = ?
                 """;
 
@@ -78,15 +83,71 @@ public class CitaDAO {
             statement.setString(3, cita.getServicio().name());
             statement.setString(4, cita.getFecha().toString());
             statement.setString(5, cita.getHoraInicio().toString());
-            statement.setString(6, cita.getTipo().name());
-            statement.setString(7, cita.getMotivo());
-            statement.setString(8, cita.getId());
+            statement.setInt(6, cita.getDuracionMinutos());
+            statement.setString(7, cita.getTipo().name());
+            statement.setString(8, cita.getMotivo());
+            statement.setString(9, cita.getOrigen());
+            statement.setInt(10, cita.isSobrecupo() ? 1 : 0);
+            statement.setString(11, cita.getId());
 
             if (statement.executeUpdate() == 0) {
                 throw new IllegalArgumentException("No existe una cita con el id indicado");
             }
         } catch (SQLException exception) {
             throw new IllegalStateException("No se pudo actualizar la cita", exception);
+        }
+    }
+
+    public List<String> obtenerCitasVencidasActivas() {
+        String sql = """
+                SELECT id FROM citas
+                WHERE estado IN (?, ?)
+                  AND (fecha < ? OR (fecha = ? AND hora_inicio < ?))
+                """;
+
+        List<String> ids = new ArrayList<>();
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, EstadoCita.PENDIENTE.name());
+            statement.setString(2, EstadoCita.CONFIRMADA.name());
+            statement.setString(3, LocalDate.now().toString());
+            statement.setString(4, LocalDate.now().toString());
+            statement.setString(5, LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")));
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    ids.add(resultSet.getString("id"));
+                }
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudieron detectar citas vencidas", exception);
+        }
+        return ids;
+    }
+
+    public boolean existeCitaActivaPorPacienteYEspecialidad(String pacienteId, String especialidad) {
+        String sql = """
+                SELECT COUNT(*) AS total
+                FROM citas
+                WHERE paciente_id = ?
+                  AND especialidad = ?
+                  AND estado IN (?, ?)
+                """;
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, pacienteId);
+            statement.setString(2, especialidad);
+            statement.setString(3, EstadoCita.PENDIENTE.name());
+            statement.setString(4, EstadoCita.CONFIRMADA.name());
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() && resultSet.getInt("total") > 0;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudo validar frecuencia del paciente", exception);
         }
     }
 
@@ -173,6 +234,18 @@ public class CitaDAO {
         });
     }
 
+    public List<Cita> obtenerActivasPorMedicoYFecha(String medicoId, LocalDate fecha) {
+        String sql = consultaBase() + """
+                 WHERE c.medico_id = ? AND c.fecha = ? AND c.estado <> ?
+                 ORDER BY c.hora_inicio
+                """;
+        return obtenerPorFiltro(sql, statement -> {
+            statement.setString(1, medicoId);
+            statement.setString(2, fecha.toString());
+            statement.setString(3, EstadoCita.CANCELADA.name());
+        });
+    }
+
     private List<Cita> obtenerPorFiltro(String sql, String filtroId) {
         return obtenerPorFiltro(sql, statement -> statement.setString(1, filtroId));
     }
@@ -206,7 +279,7 @@ public class CitaDAO {
 
     private String consultaBase() {
         return """
-                SELECT c.id, c.especialidad, c.servicio, c.fecha, c.hora_inicio, c.estado, c.tipo, c.motivo,
+                SELECT c.id, c.especialidad, c.servicio, c.fecha, c.hora_inicio, c.duracion, c.estado, c.tipo, c.motivo, c.origen, c.sobrecupo,
                        pu.id AS paciente_id, pu.nombre AS paciente_nombre, pu.apellido AS paciente_apellido,
                        pu.email AS paciente_email, pu.password AS paciente_password, pu.telefono AS paciente_telefono,
                        p.tipo_documento, p.numero_documento, p.fecha_nacimiento, p.direccion, p.eps,
@@ -248,6 +321,9 @@ public class CitaDAO {
                 resultSet.getString("consultorio")
         );
 
+        String origen = resultSet.getString("origen");
+        if (origen == null) origen = OrigenCita.PACIENTE.name();
+
         Cita cita = new Cita(
                 resultSet.getString("id"),
                 paciente,
@@ -255,10 +331,13 @@ public class CitaDAO {
                 ServicioCita.valueOf(resultSet.getString("servicio")),
                 LocalDate.parse(resultSet.getString("fecha")),
                 LocalTime.parse(resultSet.getString("hora_inicio")),
+                resultSet.getInt("duracion"),
                 TipoCita.valueOf(resultSet.getString("tipo")),
-                resultSet.getString("motivo")
+                resultSet.getString("motivo"),
+                origen
         );
         cita.setEstado(EstadoCita.valueOf(resultSet.getString("estado")));
+        cita.setSobrecupo(resultSet.getInt("sobrecupo") == 1);
         return cita;
     }
 }

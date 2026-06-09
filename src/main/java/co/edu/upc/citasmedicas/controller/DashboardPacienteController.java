@@ -3,12 +3,14 @@ package co.edu.upc.citasmedicas.controller;
 import co.edu.upc.citasmedicas.dao.MedicoDAO;
 import co.edu.upc.citasmedicas.dao.PacienteDAO;
 import co.edu.upc.citasmedicas.enums.EstadoCita;
+import co.edu.upc.citasmedicas.enums.OrigenCita;
 import co.edu.upc.citasmedicas.enums.ServicioCita;
 import co.edu.upc.citasmedicas.enums.TipoCita;
 import co.edu.upc.citasmedicas.model.Cita;
 import co.edu.upc.citasmedicas.model.Medico;
 import co.edu.upc.citasmedicas.model.Paciente;
 import co.edu.upc.citasmedicas.service.CitaService;
+import co.edu.upc.citasmedicas.service.DisponibilidadService;
 import co.edu.upc.citasmedicas.service.Session;
 import co.edu.upc.citasmedicas.view.ViewManager;
 
@@ -24,6 +26,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
@@ -47,11 +50,13 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class DashboardPacienteController {
@@ -84,9 +89,16 @@ public class DashboardPacienteController {
     private final CitaService citaService = new CitaService();
     private final MedicoDAO medicoDAO = new MedicoDAO();
     private final PacienteDAO pacienteDAO = new PacienteDAO();
+    private final DisponibilidadService disponibilidadService = new DisponibilidadService();
     private final Map<String, String> mapaIdsMedicos = new LinkedHashMap<>();
+    private ServicioCita servicioSeleccionado;
     private CalendarView calendarView;
     private CalendarSource calendarSource;
+    private final ScheduledExecutorService inasistenciasScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "inasistencias-detector");
+        t.setDaemon(true);
+        return t;
+    });
 
     @FXML
     public void initialize() {
@@ -105,11 +117,8 @@ public class DashboardPacienteController {
                 java.util.Arrays.stream(TipoCita.values()).map(TipoCita::getNombre).collect(Collectors.toList())));
         cbTipo.setValue("Presencial");
 
-        cbHora.setItems(FXCollections.observableArrayList(
-                "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
-                "11:00", "11:30", "14:00", "14:30", "15:00", "15:30",
-                "16:00", "16:30", "17:00"
-        ));
+        cbHora.setDisable(true);
+        dateFecha.setDisable(true);
 
         cbCategoria.setItems(FXCollections.observableArrayList(ServicioCita.grupos()));
         cbCategoria.valueProperty().addListener((obs, old, grupo) -> {
@@ -125,10 +134,42 @@ public class DashboardPacienteController {
 
         cbServicio.valueProperty().addListener((obs, old, servicioNombre) -> {
             if (servicioNombre != null) {
-                ServicioCita serv = ServicioCita.valueOf(servicioNombre.toUpperCase().replace(' ', '_')
+                servicioSeleccionado = ServicioCita.valueOf(servicioNombre.toUpperCase().replace(' ', '_')
                         .replace('-', '_').replace('/', '_'));
-                if (serv == null) return;
-                filtrarMedicosPorEspecialidad(serv.getEspecialidadRequerida());
+                if (servicioSeleccionado == null) return;
+                filtrarMedicosPorEspecialidad(servicioSeleccionado.getEspecialidadRequerida());
+                cbMedico.setDisable(false);
+                dateFecha.setDisable(true);
+                cbHora.setDisable(true);
+                cbHora.getItems().clear();
+            } else {
+                servicioSeleccionado = null;
+                cbMedico.setDisable(true);
+                dateFecha.setDisable(true);
+                cbHora.setDisable(true);
+                cbHora.getItems().clear();
+            }
+        });
+
+        cbMedico.valueProperty().addListener((obs, old, medicoKey) -> {
+            if (medicoKey != null && servicioSeleccionado != null) {
+                dateFecha.setDisable(false);
+                dateFecha.setValue(null);
+                cbHora.setDisable(true);
+                cbHora.getItems().clear();
+            } else {
+                dateFecha.setDisable(true);
+                cbHora.setDisable(true);
+                cbHora.getItems().clear();
+            }
+        });
+
+        dateFecha.valueProperty().addListener((obs, old, fecha) -> {
+            if (fecha != null && cbMedico.getValue() != null && servicioSeleccionado != null) {
+                cargarHorasDisponibles(fecha);
+            } else {
+                cbHora.setDisable(true);
+                cbHora.getItems().clear();
             }
         });
 
@@ -159,6 +200,7 @@ public class DashboardPacienteController {
         cargarMedicos();
         cargarMisCitas();
         aplicarColorFilas(tablaCitas);
+        iniciarDeteccionInasistencias();
     }
 
     private void filtrarMedicosPorEspecialidad(co.edu.upc.citasmedicas.enums.Especialidad esp) {
@@ -259,17 +301,61 @@ public class DashboardPacienteController {
             @Override
             protected void updateItem(Cita item, boolean empty) {
                 super.updateItem(item, empty);
-                getStyleClass().removeAll("row-pendiente", "row-confirmada", "row-completada", "row-cancelada");
+                getStyleClass().removeAll("row-pendiente", "row-confirmada", "row-completada",
+                        "row-cancelada", "row-noasistio", "row-sobrecupo");
                 if (item == null || empty) return;
                 String css = switch (item.getEstado()) {
                     case PENDIENTE -> "row-pendiente";
                     case CONFIRMADA -> "row-confirmada";
                     case COMPLETADA -> "row-completada";
                     case CANCELADA -> "row-cancelada";
+                    case NO_ASISTIO -> "row-noasistio";
                 };
                 getStyleClass().add(css);
+                if (item.isSobrecupo()) {
+                    getStyleClass().add("row-sobrecupo");
+                }
             }
         });
+    }
+
+    private void cargarHorasDisponibles(LocalDate fecha) {
+        String medicoKey = cbMedico.getValue();
+        if (medicoKey == null || servicioSeleccionado == null) return;
+
+        String medicoId = mapaIdsMedicos.get(medicoKey);
+        if (medicoId == null) return;
+
+        int duracion = servicioSeleccionado.getDuracionMinutos();
+
+        Task<List<LocalTime>> task = new Task<>() {
+            @Override
+            protected List<LocalTime> call() {
+                return disponibilidadService.obtenerHorasDisponibles(medicoId, fecha, duracion);
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            List<LocalTime> horas = task.getValue();
+            if (horas.isEmpty()) {
+                cbHora.setItems(FXCollections.observableArrayList());
+                cbHora.setPromptText("No hay horas disponibles");
+                cbHora.setDisable(true);
+            } else {
+                cbHora.setItems(FXCollections.observableArrayList(
+                        horas.stream().map(LocalTime::toString).collect(Collectors.toList())));
+                cbHora.setDisable(false);
+                cbHora.getSelectionModel().selectFirst();
+            }
+        });
+
+        task.setOnFailed(e -> {
+            cbHora.setItems(FXCollections.observableArrayList());
+            cbHora.setPromptText("Error al cargar horas");
+            cbHora.setDisable(true);
+        });
+
+        new Thread(task).start();
     }
 
     private void cargarMedicos() {
@@ -333,6 +419,11 @@ public class DashboardPacienteController {
             return;
         }
 
+        if (cbHora.isDisabled()) {
+            mostrarError(lblMensaje, "No hay horas disponibles para la fecha seleccionada.");
+            return;
+        }
+
         try {
             String servicioEnum = servicioNombre.toUpperCase().replace(' ', '_')
                     .replace('-', '_').replace('/', '_');
@@ -359,8 +450,10 @@ public class DashboardPacienteController {
                     servicio,
                     fecha,
                     horaInicio,
+                    servicio.getDuracionMinutos(),
                     tipo,
-                    motivo.isBlank() ? "Consulta general" : motivo
+                    motivo.isBlank() ? "Consulta general" : motivo,
+                    OrigenCita.PACIENTE.name()
             );
             citaService.agendarCita(cita);
             mostrarExito(lblMensaje, "Cita agendada correctamente.");
@@ -472,9 +565,14 @@ public class DashboardPacienteController {
     private void limpiarFormulario() {
         cbCategoria.setValue(null);
         cbServicio.setValue(null);
+        servicioSeleccionado = null;
         cbMedico.setValue(null);
+        cbMedico.setDisable(true);
         dateFecha.setValue(null);
+        dateFecha.setDisable(true);
         cbHora.setValue(null);
+        cbHora.setDisable(true);
+        cbHora.getItems().clear();
         txtMotivo.clear();
         cbTipo.setValue("Presencial");
     }
@@ -493,5 +591,15 @@ public class DashboardPacienteController {
         if (!label.getStyleClass().contains("feedback-error")) {
             label.getStyleClass().add("feedback-error");
         }
+    }
+
+    private void iniciarDeteccionInasistencias() {
+        Runnable tarea = () -> {
+            try {
+                citaService.autoDetectarInasistencias();
+            } catch (Exception ignored) {
+            }
+        };
+        inasistenciasScheduler.scheduleWithFixedDelay(tarea, 0, 5, TimeUnit.MINUTES);
     }
 }

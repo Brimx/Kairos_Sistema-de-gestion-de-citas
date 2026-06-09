@@ -1,33 +1,43 @@
 package co.edu.upc.citasmedicas.controller;
 
+import co.edu.upc.citasmedicas.dao.BloqueoAgendaDAO;
 import co.edu.upc.citasmedicas.dao.CitaDAO;
 import co.edu.upc.citasmedicas.dao.MedicoDAO;
 import co.edu.upc.citasmedicas.dao.PacienteDAO;
 import co.edu.upc.citasmedicas.enums.Especialidad;
 import co.edu.upc.citasmedicas.enums.EstadoCita;
+import co.edu.upc.citasmedicas.enums.OrigenCita;
 import co.edu.upc.citasmedicas.enums.ServicioCita;
 import co.edu.upc.citasmedicas.enums.TipoCita;
+import co.edu.upc.citasmedicas.model.BloqueoAgenda;
 import co.edu.upc.citasmedicas.model.Cita;
 import co.edu.upc.citasmedicas.model.Medico;
 import co.edu.upc.citasmedicas.model.Paciente;
 import co.edu.upc.citasmedicas.model.Usuario;
 import co.edu.upc.citasmedicas.service.CitaService;
+import co.edu.upc.citasmedicas.service.DisponibilidadService;
 import co.edu.upc.citasmedicas.service.PacienteService;
 import co.edu.upc.citasmedicas.service.Session;
 import co.edu.upc.citasmedicas.view.ViewManager;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.Separator;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
@@ -35,6 +45,8 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.layout.HBox;
 import javafx.geometry.Insets;
 
 import java.io.IOException;
@@ -44,7 +56,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+
 
 public class DashboardAdminController {
 
@@ -88,10 +105,17 @@ public class DashboardAdminController {
     private final MedicoDAO medicoDAO = new MedicoDAO();
     private final CitaService citaService = new CitaService();
     private final CitaDAO citaDAO = new CitaDAO();
+    private final BloqueoAgendaDAO bloqueoAgendaDAO = new BloqueoAgendaDAO();
+    private final DisponibilidadService disponibilidadService = new DisponibilidadService();
 
     private FilteredList<Paciente> filteredPacientes;
     private FilteredList<Medico> filteredMedicos;
     private FilteredList<Cita> filteredCitas;
+    private final ScheduledExecutorService inasistenciasScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "inasistencias-detector");
+        t.setDaemon(true);
+        return t;
+    });
 
     @FXML
     public void initialize() {
@@ -162,6 +186,7 @@ public class DashboardAdminController {
         cargarMedicos();
         cargarCitas();
         aplicarColorFilas(tablaCitas);
+        iniciarDeteccionInasistencias();
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -188,15 +213,20 @@ public class DashboardAdminController {
             @Override
             protected void updateItem(Cita item, boolean empty) {
                 super.updateItem(item, empty);
-                getStyleClass().removeAll("row-pendiente", "row-confirmada", "row-completada", "row-cancelada");
+                getStyleClass().removeAll("row-pendiente", "row-confirmada", "row-completada",
+                        "row-cancelada", "row-noasistio", "row-sobrecupo");
                 if (item == null || empty) return;
                 String css = switch (item.getEstado()) {
                     case PENDIENTE -> "row-pendiente";
                     case CONFIRMADA -> "row-confirmada";
                     case COMPLETADA -> "row-completada";
                     case CANCELADA -> "row-cancelada";
+                    case NO_ASISTIO -> "row-noasistio";
                 };
                 getStyleClass().add(css);
+                if (item.isSobrecupo()) {
+                    getStyleClass().add("row-sobrecupo");
+                }
             }
         });
     }
@@ -566,12 +596,59 @@ public class DashboardAdminController {
         DatePicker dpFecha = new DatePicker(sel.getFecha());
 
         ComboBox<String> cbHora = new ComboBox<>();
-        cbHora.setItems(FXCollections.observableArrayList(
-                "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
-                "11:00", "11:30", "14:00", "14:30", "15:00", "15:30",
-                "16:00", "16:30", "17:00"
-        ));
-        cbHora.setValue(sel.getHoraInicio().toString());
+        cbHora.setPromptText("Selecciona hora");
+
+        ComboBox<String> cbTipoConsulta = new ComboBox<>();
+        cbTipoConsulta.setItems(FXCollections.observableArrayList("Primera vez", "Control"));
+        cbTipoConsulta.setValue("Primera vez");
+
+        Runnable cargarHoras = () -> {
+            LocalDate fecha = dpFecha.getValue();
+            if (fecha == null || cbServicio.getValue() == null || cbMedico.getValue() == null) return;
+            String servEnum = cbServicio.getValue().toUpperCase().replace(' ', '_')
+                    .replace('-', '_').replace('/', '_');
+            ServicioCita serv = ServicioCita.valueOf(servEnum);
+            String medKey = cbMedico.getValue();
+            String medId = mapaMedicos.get(medKey);
+            if (serv == null || medId == null) return;
+
+            int duracion = "Control".equals(cbTipoConsulta.getValue())
+                    ? serv.getDuracionControlMinutos()
+                    : serv.getDuracionMinutos();
+            Task<List<LocalTime>> task = new Task<>() {
+                @Override
+                protected List<LocalTime> call() {
+                    return disponibilidadService.obtenerHorasDisponibles(medId, fecha, duracion);
+                }
+            };
+            task.setOnSucceeded(e2 -> {
+                List<LocalTime> horas = task.getValue();
+                if (horas.isEmpty()) {
+                    cbHora.getItems().clear();
+                    cbHora.setPromptText("No hay horas disponibles");
+                } else {
+                    cbHora.setItems(FXCollections.observableArrayList(
+                            horas.stream().map(LocalTime::toString).collect(Collectors.toList())));
+                    if (horas.contains(sel.getHoraInicio())) {
+                        cbHora.setValue(sel.getHoraInicio().toString());
+                    } else {
+                        cbHora.getSelectionModel().selectFirst();
+                    }
+                }
+            });
+            new Thread(task).start();
+        };
+
+        dpFecha.valueProperty().addListener((obs, old, fecha) -> cargarHoras.run());
+        cbTipoConsulta.valueProperty().addListener((obs, old, t) -> cargarHoras.run());
+
+        Platform.runLater(() -> {
+            if (dpFecha.getValue() != null && cbServicio.getValue() != null && cbMedico.getValue() != null) {
+                LocalDate tmp = dpFecha.getValue();
+                dpFecha.setValue(null);
+                dpFecha.setValue(tmp);
+            }
+        });
 
         ComboBox<String> cbTipo = new ComboBox<>();
         cbTipo.setItems(FXCollections.observableArrayList(
@@ -584,7 +661,8 @@ public class DashboardAdminController {
         grid.addRow(1, new Label("Categoria:"), cbCategoria, new Label("Servicio:"), cbServicio);
         grid.addRow(2, new Label("Medico:"), cbMedico);
         grid.addRow(3, new Label("Fecha:"), dpFecha, new Label("Hora:"), cbHora);
-        grid.addRow(4, new Label("Modalidad:"), cbTipo, new Label("Motivo:"), txtMotivo);
+        grid.addRow(4, new Label("Tipo:"), cbTipoConsulta, new Label("Modalidad:"), cbTipo);
+        grid.addRow(5, new Label("Motivo:"), txtMotivo);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -604,6 +682,11 @@ public class DashboardAdminController {
                     Medico medico = medicoDAO.buscarPorId(medicoId);
                     if (medico == null) return null;
 
+                    String tipoConsulta = cbTipoConsulta.getValue();
+                    int duracion = "Control".equals(tipoConsulta)
+                            ? servicio.getDuracionControlMinutos()
+                            : servicio.getDuracionMinutos();
+
                     String tipoNombre = cbTipo.getValue();
                     TipoCita tipo = TipoCita.valueOf(tipoNombre.toUpperCase().replace(' ', '_'));
 
@@ -612,8 +695,10 @@ public class DashboardAdminController {
                             sel.getPaciente(), medico,
                             servicio,
                             dpFecha.getValue(), LocalTime.parse(cbHora.getValue()),
+                            duracion,
                             tipo,
-                            txtMotivo.getText().trim()
+                            txtMotivo.getText().trim(),
+                            sel.getOrigen()
                     );
                 } catch (Exception e) {
                     mostrarError(lblMensajeCitas, "Datos invalidos: " + e.getMessage());
@@ -674,6 +759,29 @@ public class DashboardAdminController {
                 try {
                     citaService.cancelarCita(sel.getId());
                     mostrarExito(lblMensajeCitas, "Cita cancelada.");
+                    cargarCitas();
+                } catch (IllegalArgumentException | IllegalStateException exception) {
+                    mostrarError(lblMensajeCitas, exception.getMessage());
+                }
+            }
+        });
+    }
+
+    @FXML
+    private void handleNoAsistio() {
+        Cita sel = tablaCitas.getSelectionModel().getSelectedItem();
+        if (sel == null) {
+            mostrarError(lblMensajeCitas, "Selecciona una cita.");
+            return;
+        }
+        Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION,
+                "Marcar como inasistencia la cita de " + sel.getPaciente().getNombre() + "?",
+                ButtonType.YES, ButtonType.NO);
+        dialogo.showAndWait().ifPresent(boton -> {
+            if (boton == ButtonType.YES) {
+                try {
+                    citaService.marcarNoAsistio(sel.getId());
+                    mostrarExito(lblMensajeCitas, "Cita marcada como inasistencia.");
                     cargarCitas();
                 } catch (IllegalArgumentException | IllegalStateException exception) {
                     mostrarError(lblMensajeCitas, exception.getMessage());
@@ -754,14 +862,79 @@ public class DashboardAdminController {
 
         DatePicker dpFecha = new DatePicker();
         dpFecha.setPromptText("Fecha");
+        dpFecha.setDisable(true);
 
         ComboBox<String> cbHora = new ComboBox<>();
-        cbHora.setItems(FXCollections.observableArrayList(
-                "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
-                "11:00", "11:30", "14:00", "14:30", "15:00", "15:30",
-                "16:00", "16:30", "17:00"
-        ));
         cbHora.setPromptText("Hora");
+        cbHora.setDisable(true);
+
+        cbMedico.valueProperty().addListener((obs, old, medKey) -> {
+            if (medKey != null) {
+                dpFecha.setDisable(false);
+                dpFecha.setValue(null);
+                cbHora.setDisable(true);
+                cbHora.getItems().clear();
+            } else {
+                dpFecha.setDisable(true);
+                cbHora.setDisable(true);
+                cbHora.getItems().clear();
+            }
+        });
+
+        ComboBox<String> cbTipoConsulta = new ComboBox<>();
+        cbTipoConsulta.setItems(FXCollections.observableArrayList("Primera vez", "Control"));
+        cbTipoConsulta.setValue("Primera vez");
+
+        Runnable cargarHoras = () -> {
+            LocalDate fecha = dpFecha.getValue();
+            if (fecha == null || cbMedico.getValue() == null || cbServicio.getValue() == null) {
+                cbHora.setDisable(true);
+                cbHora.getItems().clear();
+                return;
+            }
+            String servEnum = cbServicio.getValue().toUpperCase().replace(' ', '_')
+                    .replace('-', '_').replace('/', '_');
+            ServicioCita serv = ServicioCita.valueOf(servEnum);
+            String medKey = cbMedico.getValue();
+            String medId = mapaMedicos.get(medKey);
+            if (serv == null || medId == null) {
+                cbHora.setDisable(true);
+                cbHora.getItems().clear();
+                return;
+            }
+
+            int duracion = "Control".equals(cbTipoConsulta.getValue())
+                    ? serv.getDuracionControlMinutos()
+                    : serv.getDuracionMinutos();
+            Task<List<LocalTime>> task = new Task<>() {
+                @Override
+                protected List<LocalTime> call() {
+                    return disponibilidadService.obtenerHorasDisponibles(medId, fecha, duracion);
+                }
+            };
+            task.setOnSucceeded(e2 -> {
+                List<LocalTime> horas = task.getValue();
+                if (horas.isEmpty()) {
+                    cbHora.getItems().clear();
+                    cbHora.setPromptText("No hay horas disponibles");
+                    cbHora.setDisable(true);
+                } else {
+                    cbHora.setItems(FXCollections.observableArrayList(
+                            horas.stream().map(LocalTime::toString).collect(Collectors.toList())));
+                    cbHora.setDisable(false);
+                    cbHora.getSelectionModel().selectFirst();
+                }
+            });
+            task.setOnFailed(e2 -> {
+                cbHora.getItems().clear();
+                cbHora.setPromptText("Error al cargar horas");
+                cbHora.setDisable(true);
+            });
+            new Thread(task).start();
+        };
+
+        dpFecha.valueProperty().addListener((obs, old, fecha) -> cargarHoras.run());
+        cbTipoConsulta.valueProperty().addListener((obs, old, t) -> cargarHoras.run());
 
         ComboBox<String> cbTipo = new ComboBox<>();
         cbTipo.setItems(FXCollections.observableArrayList(
@@ -771,13 +944,19 @@ public class DashboardAdminController {
         TextField txtMotivo = new TextField();
         txtMotivo.setPromptText("Motivo de consulta");
 
+        CheckBox chkSobrecupo = new CheckBox("Sobrecupo (saltar disponibilidad)");
+
         grid.addRow(0, new Label("Paciente:"), cbPaciente);
         grid.addRow(1, new Label("Categoria:"), cbCategoria, new Label("Servicio:"), cbServicio);
         grid.addRow(2, new Label("Medico:"), cbMedico);
         grid.addRow(3, new Label("Fecha:"), dpFecha, new Label("Hora:"), cbHora);
-        grid.addRow(4, new Label("Modalidad:"), cbTipo, new Label("Motivo:"), txtMotivo);
+        grid.addRow(4, new Label("Tipo:"), cbTipoConsulta, new Label("Modalidad:"), cbTipo);
+        grid.addRow(5, new Label("Motivo:"), txtMotivo);
+        grid.addRow(6, chkSobrecupo);
 
         dialog.getDialogPane().setContent(grid);
+
+        boolean[] esSobrecupo = {false};
 
         dialog.setResultConverter(btn -> {
             if (btn == btnAgendar) {
@@ -786,12 +965,15 @@ public class DashboardAdminController {
                 String medKey = cbMedico.getValue();
                 LocalDate fecha = dpFecha.getValue();
                 String hora = cbHora.getValue();
+                String tipoConsulta = cbTipoConsulta.getValue();
                 String tipoNombre = cbTipo.getValue();
                 String motivo = txtMotivo.getText();
 
                 if (pacKey == null || servicioNombre == null || medKey == null || fecha == null || hora == null) {
                     return null;
                 }
+
+                esSobrecupo[0] = chkSobrecupo.isSelected();
 
                 try {
                     String servicioEnum = servicioNombre.toUpperCase().replace(' ', '_')
@@ -806,6 +988,10 @@ public class DashboardAdminController {
 
                     if (paciente == null || medico == null) return null;
 
+                    int duracion = "Control".equals(tipoConsulta)
+                            ? servicio.getDuracionControlMinutos()
+                            : servicio.getDuracionMinutos();
+
                     String tipoEnum = tipoNombre.toUpperCase().replace(' ', '_')
                             .replace('-', '_').replace('/', '_');
                     TipoCita tipo = TipoCita.valueOf(tipoEnum);
@@ -815,8 +1001,10 @@ public class DashboardAdminController {
                             paciente, medico,
                             servicio,
                             fecha, LocalTime.parse(hora),
+                            duracion,
                             tipo,
-                            motivo == null || motivo.isBlank() ? "Consulta general" : motivo.trim()
+                            motivo == null || motivo.isBlank() ? "Consulta general" : motivo.trim(),
+                            OrigenCita.PACIENTE.name()
                     );
                 } catch (Exception e) {
                     return null;
@@ -827,8 +1015,13 @@ public class DashboardAdminController {
 
         dialog.showAndWait().ifPresent(cita -> {
             try {
-                citaService.agendarCita(cita);
-                mostrarExito(lblMensajeCitas, "Cita agendada correctamente.");
+                if (esSobrecupo[0]) {
+                    citaService.agendarSobrecupo(cita);
+                    mostrarExito(lblMensajeCitas, "Sobrecupo agendado correctamente.");
+                } else {
+                    citaService.agendarCita(cita);
+                    mostrarExito(lblMensajeCitas, "Cita agendada correctamente.");
+                }
                 cargarCitas();
             } catch (IllegalArgumentException | IllegalStateException exception) {
                 mostrarError(lblMensajeCitas, exception.getMessage());
@@ -855,6 +1048,212 @@ public class DashboardAdminController {
     @FXML
     private void irARegistroMedico() throws IOException {
         ViewManager.showView("/co/edu/upc/citasmedicas/fxml/registro.fxml", "Registro de Usuario - Sistema EPS");
+    }
+
+    @FXML
+    private void handleGestionarBloqueos() {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Gestionar Bloqueos de Agenda");
+        dialog.setHeaderText("Bloquear fechas/horas para un medico");
+
+        ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().add(btnCerrar);
+
+        VBox content = new VBox(12);
+        content.setPadding(new Insets(16));
+
+        GridPane form = new GridPane();
+        form.setHgap(10);
+        form.setVgap(10);
+
+        ComboBox<String> cbMedico = new ComboBox<>();
+        Map<String, String> mapaMedicosBloq = new LinkedHashMap<>();
+        for (Medico m : medicoDAO.obtenerTodos()) {
+            String etiqueta = m.getNombre() + " " + m.getApellido() + " (" + m.getEspecialidad().getNombre() + ")";
+            mapaMedicosBloq.put(etiqueta, m.getId());
+        }
+        cbMedico.setItems(FXCollections.observableArrayList(mapaMedicosBloq.keySet()));
+        cbMedico.setPromptText("Selecciona medico");
+
+        DatePicker dpFecha = new DatePicker();
+        dpFecha.setPromptText("Fecha");
+        dpFecha.setDisable(true);
+
+        CheckBox chkDiaCompleto = new CheckBox("Todo el dia");
+        chkDiaCompleto.setSelected(true);
+
+        ComboBox<String> cbHoraInicio = new ComboBox<>();
+        cbHoraInicio.setPromptText("Hora inicio");
+        cbHoraInicio.setDisable(true);
+        cbHoraInicio.setItems(FXCollections.observableArrayList(
+                "06:00", "06:30", "07:00", "07:30", "08:00", "08:30",
+                "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+                "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
+                "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00"));
+
+        ComboBox<String> cbHoraFin = new ComboBox<>();
+        cbHoraFin.setPromptText("Hora fin");
+        cbHoraFin.setDisable(true);
+        cbHoraFin.setItems(FXCollections.observableArrayList(
+                "06:00", "06:30", "07:00", "07:30", "08:00", "08:30",
+                "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+                "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
+                "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00"));
+
+        chkDiaCompleto.selectedProperty().addListener((obs, old, val) -> {
+            cbHoraInicio.setDisable(val);
+            cbHoraFin.setDisable(val);
+            if (val) {
+                cbHoraInicio.setValue(null);
+                cbHoraFin.setValue(null);
+            }
+        });
+
+        TextField txtMotivo = new TextField();
+        txtMotivo.setPromptText("Motivo del bloqueo (ej: Congreso, Vacaciones, Incapacidad)");
+
+        Button btnAgregarBloqueo = new Button("Agregar bloqueo");
+        btnAgregarBloqueo.getStyleClass().add("btn-danger");
+        btnAgregarBloqueo.setDisable(true);
+
+        form.addRow(0, new Label("Medico:"), cbMedico);
+        form.addRow(1, new Label("Fecha:"), dpFecha);
+        form.addRow(2, new Label("Horario:"), chkDiaCompleto, cbHoraInicio, new Label("a"), cbHoraFin);
+        form.addRow(3, new Label("Motivo:"), txtMotivo);
+        form.add(btnAgregarBloqueo, 0, 4, 4, 1);
+
+        Separator sep = new Separator();
+        Label lblBloqueosExistentes = new Label("Bloqueos existentes:");
+        lblBloqueosExistentes.setStyle("-fx-font-weight: bold;");
+
+        ListView<String> listaBloqueos = new ListView<>();
+        listaBloqueos.setPrefHeight(120);
+        ObservableList<String> itemsBloqueos = FXCollections.observableArrayList();
+        listaBloqueos.setItems(itemsBloqueos);
+
+        Button btnEliminarBloqueo = new Button("Eliminar bloqueo seleccionado");
+        btnEliminarBloqueo.getStyleClass().add("btn-danger");
+        btnEliminarBloqueo.setDisable(true);
+
+        HBox bottomRow = new HBox(10, btnEliminarBloqueo);
+
+        content.getChildren().addAll(form, sep, lblBloqueosExistentes, listaBloqueos, bottomRow);
+        dialog.getDialogPane().setContent(content);
+
+        cbMedico.valueProperty().addListener((obs, old, val) -> {
+            dpFecha.setDisable(val == null);
+            if (val == null) {
+                dpFecha.setValue(null);
+                btnAgregarBloqueo.setDisable(true);
+            }
+            actualizarListaBloqueos(itemsBloqueos, listaBloqueos,
+                    mapaMedicosBloq.get(val), dpFecha.getValue(), btnEliminarBloqueo);
+        });
+
+        dpFecha.valueProperty().addListener((obs, old, val) -> {
+            btnAgregarBloqueo.setDisable(val == null || cbMedico.getValue() == null);
+            actualizarListaBloqueos(itemsBloqueos, listaBloqueos,
+                    mapaMedicosBloq.get(cbMedico.getValue()), val, btnEliminarBloqueo);
+        });
+
+        listaBloqueos.getSelectionModel().selectedItemProperty().addListener((obs, old, val) -> {
+            btnEliminarBloqueo.setDisable(val == null);
+        });
+
+        btnAgregarBloqueo.setOnAction(e -> {
+            String medKey = cbMedico.getValue();
+            LocalDate fecha = dpFecha.getValue();
+            String motivo = txtMotivo.getText() == null ? "" : txtMotivo.getText().trim();
+
+            if (medKey == null || fecha == null || motivo.isBlank()) {
+                mostrarError(lblMensajeCitas, "Completa medico, fecha y motivo.");
+                return;
+            }
+
+            String medicoId = mapaMedicosBloq.get(medKey);
+            LocalTime horaInicio = chkDiaCompleto.isSelected() ? null
+                    : (cbHoraInicio.getValue() != null ? LocalTime.parse(cbHoraInicio.getValue()) : null);
+            LocalTime horaFin = chkDiaCompleto.isSelected() ? null
+                    : (cbHoraFin.getValue() != null ? LocalTime.parse(cbHoraFin.getValue()) : null);
+
+            try {
+                BloqueoAgenda bloqueo = new BloqueoAgenda(
+                        UUID.randomUUID().toString().substring(0, 8),
+                        medicoId, fecha, horaInicio, horaFin, motivo);
+                bloqueoAgendaDAO.guardar(bloqueo);
+
+                List<Cita> afectadas = citaDAO.obtenerActivasPorMedicoYFecha(medicoId, fecha);
+                if (!afectadas.isEmpty()) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("Se agregó el bloqueo. Las siguientes citas quedan afectadas:\n\n");
+                    for (Cita c : afectadas) {
+                        sb.append("- ").append(c.getPaciente().getNombre()).append(" ")
+                                .append(c.getPaciente().getApellido())
+                                .append(" | ").append(c.getFecha()).append(" ")
+                                .append(c.getHoraInicio()).append("\n");
+                    }
+                    sb.append("\nDeberas contactar a los pacientes para reubicarlos.");
+                    Alert alert = new Alert(Alert.AlertType.WARNING, sb.toString(), ButtonType.OK);
+                    alert.setTitle("Citas por Reubicar");
+                    alert.setHeaderText(afectadas.size() + " cita(s) afectada(s)");
+                    alert.show();
+                } else {
+                    mostrarExito(lblMensajeCitas, "Bloqueo agregado.");
+                }
+
+                actualizarListaBloqueos(itemsBloqueos, listaBloqueos, medicoId, fecha, btnEliminarBloqueo);
+                txtMotivo.clear();
+            } catch (IllegalArgumentException | IllegalStateException ex) {
+                mostrarError(lblMensajeCitas, ex.getMessage());
+            }
+        });
+
+        btnEliminarBloqueo.setOnAction(e -> {
+            int idx = listaBloqueos.getSelectionModel().getSelectedIndex();
+            if (idx < 0) return;
+
+            String item = itemsBloqueos.get(idx);
+            String bloqueoId = item.substring(0, item.indexOf(" |"));
+            try {
+                bloqueoAgendaDAO.eliminar(bloqueoId);
+                actualizarListaBloqueos(itemsBloqueos, listaBloqueos,
+                        mapaMedicosBloq.get(cbMedico.getValue()), dpFecha.getValue(), btnEliminarBloqueo);
+                mostrarExito(lblMensajeCitas, "Bloqueo eliminado.");
+            } catch (IllegalArgumentException | IllegalStateException ex) {
+                mostrarError(lblMensajeCitas, ex.getMessage());
+            }
+        });
+
+        dialog.showAndWait();
+    }
+
+    private void actualizarListaBloqueos(ObservableList<String> items, ListView<String> listView,
+                                          String medicoId, LocalDate fecha, Button btnEliminar) {
+        if (medicoId == null || fecha == null) {
+            items.clear();
+            return;
+        }
+        try {
+            List<BloqueoAgenda> bloqueos = bloqueoAgendaDAO.obtenerPorMedicoYFecha(medicoId, fecha);
+            items.clear();
+            for (BloqueoAgenda b : bloqueos) {
+                String rango = b.esDiaCompleto() ? "Todo el dia"
+                        : b.getHoraInicio() + " - " + b.getHoraFin();
+                items.add(b.getId() + " | " + rango + " | " + b.getMotivo());
+            }
+        } catch (RuntimeException e) {
+            items.clear();
+        }
+    }
+
+    private void iniciarDeteccionInasistencias() {
+        Runnable tarea = () -> {
+            try {
+                citaService.autoDetectarInasistencias();
+            } catch (Exception ignored) {
+            }
+        };
+        inasistenciasScheduler.scheduleWithFixedDelay(tarea, 0, 5, TimeUnit.MINUTES);
     }
 
     @FXML
