@@ -208,3 +208,15 @@
 .row-cancelada {
     -fx-background-color: #fee2e2;
 }
+
+.input-error {
+    -fx-border-color: #b91c1c;
+    -fx-border-width: 2;
+    -fx-border-radius: 4;
+}
+
+.input-valid {
+    -fx-border-color: #047857;
+    -fx-border-width: 2;
+    -fx-border-radius: 4;
+}

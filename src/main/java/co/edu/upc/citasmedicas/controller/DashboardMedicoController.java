@@ -60,6 +60,8 @@ public class DashboardMedicoController {
         colTipo.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTipo().name()));
         colEstado.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getEstado().name()));
 
+        tablaAgenda.setPlaceholder(new Label("No hay citas para hoy"));
+
         inicializarCalendario();
         cargarAgenda();
         aplicarColorFilas(tablaAgenda);

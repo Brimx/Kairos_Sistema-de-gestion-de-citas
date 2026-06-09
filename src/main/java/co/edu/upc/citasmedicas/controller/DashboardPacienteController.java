@@ -88,6 +88,8 @@ public class DashboardPacienteController {
                 "16:00", "16:30", "17:00"
         ));
 
+        tablaCitas.setPlaceholder(new Label("No tienes citas agendadas"));
+
         inicializarCalendario();
         cargarMedicos();
         cargarMisCitas();

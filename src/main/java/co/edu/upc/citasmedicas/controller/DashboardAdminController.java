@@ -20,6 +20,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 
 import java.io.IOException;
 
@@ -85,6 +86,10 @@ public class DashboardAdminController {
                         txtEditTel.setText(sel.getTelefono());
                     }
                 });
+
+        tablaPacientes.setPlaceholder(new Label("No hay pacientes registrados"));
+        tablaMedicos.setPlaceholder(new Label("No hay medicos registrados"));
+        tablaCitas.setPlaceholder(new Label("No hay citas registradas"));
 
         cargarPacientes();
         cargarMedicos();

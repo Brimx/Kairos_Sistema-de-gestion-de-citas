@@ -17,6 +17,7 @@ import javafx.scene.control.*;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -203,27 +204,34 @@ public class RegistroController {
     }
 
     private void limpiarEstilos() {
-        nombreField.setStyle("");
-        apellidoField.setStyle("");
-        emailField.setStyle("");
-        passwordField.setStyle("");
-        telefonoField.setStyle("");
-        confirmarTelefonoField.setStyle("");
-        codigoAdminField.setStyle("");
+        for (var campo : List.of(nombreField, apellidoField, emailField, passwordField,
+                telefonoField, confirmarTelefonoField, codigoAdminField)) {
+            limpiarEstiloCampo(campo);
+        }
     }
 
     private void marcarError(TextField campo) {
-        campo.setStyle("-fx-border-color: #b91c1c; -fx-border-width: 2; -fx-border-radius: 4;");
+        campo.getStyleClass().removeAll("input-valid");
+        if (!campo.getStyleClass().contains("input-error")) {
+            campo.getStyleClass().add("input-error");
+        }
     }
 
     private void marcarValido(TextField campo) {
-        campo.setStyle("-fx-border-color: #047857; -fx-border-width: 2; -fx-border-radius: 4;");
+        campo.getStyleClass().removeAll("input-error");
+        if (!campo.getStyleClass().contains("input-valid")) {
+            campo.getStyleClass().add("input-valid");
+        }
+    }
+
+    private void limpiarEstiloCampo(TextField campo) {
+        campo.getStyleClass().removeAll("input-error", "input-valid");
     }
 
     private void validarEmailCampo() {
         String email = emailField.getText().trim().toLowerCase();
         if (email.isBlank()) {
-            emailField.setStyle("");
+            limpiarEstiloCampo(emailField);
             return;
         }
         String error = ValidacionService.mensajeErrorEmail(email);
@@ -237,7 +245,7 @@ public class RegistroController {
     private void validarTelefonoCampo() {
         String tel = telefonoField.getText().trim();
         if (tel.isBlank()) {
-            telefonoField.setStyle("");
+            limpiarEstiloCampo(telefonoField);
             return;
         }
         String error = ValidacionService.mensajeErrorTelefono(tel);
@@ -252,7 +260,7 @@ public class RegistroController {
         String tel = telefonoField.getText().trim();
         String conf = confirmarTelefonoField.getText().trim();
         if (conf.isBlank()) {
-            confirmarTelefonoField.setStyle("");
+            limpiarEstiloCampo(confirmarTelefonoField);
             return;
         }
         String error = ValidacionService.mensajeErrorConfirmarTelefono(tel, conf);
