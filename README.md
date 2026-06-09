@@ -1,6 +1,6 @@
 # Sistema de Gestión de Citas Médicas
 
-Aplicación de escritorio desarrollada en **Java + JavaFX** para la gestión integral de citas médicas en una EPS. Permite a pacientes agendar citas, a médicos gestionar su agenda del día y a administradores supervisar el sistema completo.
+Aplicación de escritorio desarrollada en **Java + JavaFX** con interfaz **Material Design** vía CSS (sin librerías externas) para la gestión integral de citas médicas en una EPS. Permite a pacientes agendar citas, a médicos gestionar su agenda del día y a administradores supervisar el sistema completo.
 
 ![Java](https://img.shields.io/badge/Java-17+-orange?logo=java) ![JavaFX](https://img.shields.io/badge/JavaFX-21+-blue) ![Paradigma](https://img.shields.io/badge/Paradigma-POO-green) ![SQLite](https://img.shields.io/badge/Base%20de%20datos-SQLite-lightgrey?logo=sqlite)
 
@@ -38,6 +38,7 @@ El sistema gestiona el ciclo de vida completo de una cita médica: desde que el 
 | SQLite | — | Base de datos embebida |
 | Xerial SQLite JDBC | 3.45.2.0 | Conector Java ↔ SQLite |
 | CalendarFX | 11.12.7 | Componentes de calendario |
+| CSS (Material Design) | — | UI moderna sin librerías externas |
 | Maven | — | Gestión de dependencias y build |
 
 ---
