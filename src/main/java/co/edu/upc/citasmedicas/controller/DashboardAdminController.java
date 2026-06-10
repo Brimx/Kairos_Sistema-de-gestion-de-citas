@@ -582,7 +582,8 @@ public class DashboardAdminController {
             if (boton == ButtonType.YES) {
                 try {
                     medicoDAO.eliminar(sel.getId());
-                    mostrarExito(lblMensajeMedicos, "Medico eliminado.");
+                    citaService.reprogramarCitasDelMedico(sel.getId());
+                    mostrarExito(lblMensajeMedicos, "Medico eliminado. Sus citas fueron reprogramadas.");
                     cargarMedicos();
                 } catch (IllegalArgumentException | IllegalStateException exception) {
                     mostrarError(lblMensajeMedicos, exception.getMessage());

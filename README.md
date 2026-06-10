@@ -427,6 +427,7 @@ La conexión se gestiona a través de `DatabaseConnection.java` que también ini
 - **Null safety**: corregido `NullPointerException` en `PacienteDAO.actualizarTodo()` y `UsuarioDAO.guardarPaciente()` cuando `fechaNacimiento` es null.
 - **Documentación**: agregada sección 12 (Banco de Preguntas para Defensa) en `docs/ARQUITECTURA.md` con 30 preguntas y respuestas técnicas.
 - **Demo expandido**: se agregaron 3 pacientes nuevos (Valentina, Felipe, Camila), 2 médicos nuevos (Psiquiatría y Nutrición), 10 citas adicionales, 5 historiales clínicos, 2 bloqueos de agenda y 8 registros de agenda. Total: 9 pacientes, 7 médicos, 23 citas demo.
+- **Reprogramación automática**: al eliminar un médico, `CitaService.reprogramarCitasDelMedico()` reasigna sus citas futuras a otros médicos de la misma especialidad. Busca el slot más cercano (mismo día o hasta 14 días después) o cancela la cita si no hay disponibilidad. Integrado en el dashboard del administrador.
 
 ---
 

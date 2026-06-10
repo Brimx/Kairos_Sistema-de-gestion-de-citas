@@ -56,6 +56,39 @@ public class MedicoDAO {
         }
     }
 
+    public List<Medico> obtenerPorEspecialidad(Especialidad especialidad, String excluirId) {
+        String sql = """
+                SELECT u.id, u.nombre, u.apellido, u.email, u.password, u.telefono,
+                       m.registro_medico, m.especialidad, m.consultorio,
+                       m.tipo_documento, m.numero_documento, m.fecha_nacimiento,
+                       m.direccion, m.eps
+                FROM medicos m
+                JOIN usuarios u ON u.id = m.usuario_id
+                WHERE u.activo = 1 AND m.especialidad = ?
+                  AND u.id <> ?
+                ORDER BY u.apellido, u.nombre
+                """;
+
+        List<Medico> medicos = new ArrayList<>();
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, especialidad.name());
+            statement.setString(2, excluirId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    medicos.add(mapearMedico(resultSet));
+                }
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudieron cargar los medicos por especialidad", exception);
+        }
+
+        return medicos;
+    }
+
     public List<Medico> obtenerTodos() {
         String sql = """
                 SELECT u.id, u.nombre, u.apellido, u.email, u.password, u.telefono,

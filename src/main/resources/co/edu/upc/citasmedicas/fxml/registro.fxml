@@ -50,6 +50,10 @@
                        visible="false" managed="false"/>
 
             <Button text="Siguiente →" onAction="#handleSiguiente" styleClass="login-button" maxWidth="Infinity"/>
+
+            <HBox spacing="12" alignment="CENTER" maxWidth="Infinity">
+                <Button text="← Volver al inicio" onAction="#handleVolverLogin" styleClass="secondary-button" maxWidth="Infinity"/>
+            </HBox>
         </VBox>
 
         <Separator fx:id="separatorStep" visible="false" managed="false"/>
