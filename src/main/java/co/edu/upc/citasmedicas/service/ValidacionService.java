@@ -15,6 +15,12 @@ public final class ValidacionService {
     private static final Pattern TELEFONO_COLOMBIA =
             Pattern.compile("^(\\+57)?3\\d{9}$");
 
+    private static final Pattern SOLO_LETRAS =
+            Pattern.compile("^[a-zA-ZáéíóúÁÉÍÓÚñÑ ]+$");
+
+    private static final Pattern SOLO_DIGITOS =
+            Pattern.compile("^\\d+$");
+
     private ValidacionService() {
     }
 
@@ -61,6 +67,27 @@ public final class ValidacionService {
     public static String mensajeErrorConfirmarTelefono(String telefono, String confirmacion) {
         if (confirmacion == null || confirmacion.isBlank()) return "Confirma tu numero de telefono";
         if (!telefono.equals(confirmacion.trim())) return "Los numeros de telefono no coinciden";
+        return null;
+    }
+
+    public static String mensajeErrorNombre(String nombre) {
+        if (nombre == null || nombre.isBlank()) return null;
+        if (!SOLO_LETRAS.matcher(nombre.trim()).matches())
+            return "Solo se permiten letras y espacios";
+        return null;
+    }
+
+    public static String mensajeErrorNumeroDocumento(String doc) {
+        if (doc == null || doc.isBlank()) return null;
+        if (!SOLO_DIGITOS.matcher(doc.trim()).matches())
+            return "Solo se permiten numeros";
+        return null;
+    }
+
+    public static String mensajeErrorEps(String eps) {
+        if (eps == null || eps.isBlank()) return null;
+        if (!SOLO_LETRAS.matcher(eps.trim()).matches())
+            return "Solo se permiten letras y espacios";
         return null;
     }
 }

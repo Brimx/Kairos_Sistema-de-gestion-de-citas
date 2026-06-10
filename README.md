@@ -318,6 +318,12 @@ CREATE TABLE historial_clinico (
 - **Origen de cita**: las agendadas por el paciente son `PACIENTE`; las agendadas por el médico como control son `CONTROL`.
 - **Historial clínico**: al completar una consulta, el médico llena el formulario (diagnóstico obligatorio) y se persiste en `historial_clinico`.
 - **Email duplicado**: no se permite registrar dos usuarios con el mismo email.
+- **Formato de nombre/apellido**: solo letras (incluyendo tildes y ñ) y espacios — números y caracteres especiales son rechazados via `ValidacionService.mensajeErrorNombre()`.
+- **Formato de documento**: solo dígitos via `ValidacionService.mensajeErrorNumeroDocumento()`.
+- **Formato de EPS**: solo letras y espacios via `ValidacionService.mensajeErrorEps()`.
+- **Tipo de documento**: ComboBox fijo (CC, TI, CE, Pasaporte) en todos los formularios — no se permiten valores arbitrarios.
+- **Email en modify dialogs**: ahora se valida formato en los diálogos de modificar datos de paciente, médico y administrador.
+- **Null safety**: se corrigió `NullPointerException` en `PacienteDAO.actualizarTodo()` cuando la fecha de nacimiento es null.
 - **Borrado lógico**: las citas canceladas y usuarios desactivados permanecen en la BD.
 
 ---
@@ -383,11 +389,16 @@ mvn javafx:run
 | Paciente | `sofia@demo.com` | `1234` |
 | Paciente | `diego@demo.com` | `1234` |
 | Paciente | `carolina@demo.com` | `1234` |
+| Paciente | `valentina@demo.com` | `1234` |
+| Paciente | `felipe@demo.com` | `1234` |
+| Paciente | `camila@demo.com` | `1234` |
 | Médico (Medicina General) | `medico@demo.com` | `1234` |
 | Médico (Odontología) | `odontologia@demo.com` | `1234` |
 | Médico (Pediatría) | `pediatria@demo.com` | `1234` |
 | Médico (Dermatología) | `dermatologia@demo.com` | `1234` |
 | Médico (Psicología) | `psicologia@demo.com` | `1234` |
+| Médico (Psiquiatría) | `psiquiatria@demo.com` | `1234` |
+| Médico (Nutrición) | `nutricion@demo.com` | `1234` |
 | Administrador | `admin@demo.com` | `1234` |
 
 ---
@@ -403,6 +414,19 @@ El sistema usa **SQLite** como base de datos embebida. El archivo `citasmedicas.
 - `PRAGMA foreign_keys = ON` para integridad referencial
 
 La conexión se gestiona a través de `DatabaseConnection.java` que también inicializa las tablas y los datos demo automáticamente en la primera ejecución.
+
+---
+
+## Cambios recientes
+
+### Junio 2026 — Validaciones de formato y correcciones de robustez
+
+- **ValidacionService extendido**: nuevos métodos `mensajeErrorNombre()`, `mensajeErrorNumeroDocumento()` y `mensajeErrorEps()` con regex para rechazar entradas inválidas en tiempo de envío.
+- **tipoDoc unificado**: todos los modify dialogs ahora usan `ComboBox<String>` con opciones fijas (CC, TI, CE, Pasaporte) igual que el registro.
+- **Email validado en modify**: los diálogos de modificar datos de Paciente, Médico y Administrador ahora validan el formato del email antes de guardar.
+- **Null safety**: corregido `NullPointerException` en `PacienteDAO.actualizarTodo()` y `UsuarioDAO.guardarPaciente()` cuando `fechaNacimiento` es null.
+- **Documentación**: agregada sección 12 (Banco de Preguntas para Defensa) en `docs/ARQUITECTURA.md` con 30 preguntas y respuestas técnicas.
+- **Demo expandido**: se agregaron 3 pacientes nuevos (Valentina, Felipe, Camila), 2 médicos nuevos (Psiquiatría y Nutrición), 10 citas adicionales, 5 historiales clínicos, 2 bloqueos de agenda y 8 registros de agenda. Total: 9 pacientes, 7 médicos, 23 citas demo.
 
 ---
 

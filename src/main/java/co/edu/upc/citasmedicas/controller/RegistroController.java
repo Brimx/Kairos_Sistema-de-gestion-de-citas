@@ -132,7 +132,6 @@ public class RegistroController {
             }
         }
 
-        boolean esPaciente = "PACIENTE".equals(rol);
         boolean esMedico = "MEDICO".equals(rol);
 
         medicoExtraPanel.setVisible(esMedico);
@@ -173,6 +172,10 @@ public class RegistroController {
 
         if (nombre.isEmpty()) { errorLabel.setText("El nombre es obligatorio"); marcarError(nombreField); return; }
         if (apellido.isEmpty()) { errorLabel.setText("El apellido es obligatorio"); marcarError(apellidoField); return; }
+        String errorNombre = ValidacionService.mensajeErrorNombre(nombre);
+        if (errorNombre != null) { errorLabel.setText(errorNombre); marcarError(nombreField); return; }
+        String errorApellido = ValidacionService.mensajeErrorNombre(apellido);
+        if (errorApellido != null) { errorLabel.setText(errorApellido); marcarError(apellidoField); return; }
         if (password == null || password.isBlank()) { errorLabel.setText("La contrasena es obligatoria"); marcarError(passwordField); return; }
         if (rolSeleccionado == null) { errorLabel.setText("Selecciona un tipo de usuario"); return; }
 
@@ -189,6 +192,8 @@ public class RegistroController {
         String tipoDoc = tipoDocCombo.getValue();
         String numDoc = numeroDocField.getText() == null ? "" : numeroDocField.getText().trim();
         if (numDoc.isEmpty()) { errorLabel.setText("El numero de documento es obligatorio"); marcarError(numeroDocField); return; }
+        String errorDoc = ValidacionService.mensajeErrorNumeroDocumento(numDoc);
+        if (errorDoc != null) { errorLabel.setText(errorDoc); marcarError(numeroDocField); return; }
 
         LocalDate fechaNac = fechaNacField.getValue();
         if ("PACIENTE".equals(rolSeleccionado) && fechaNac == null) {
@@ -198,6 +203,8 @@ public class RegistroController {
 
         String direccion = direccionField.getText() == null ? "" : direccionField.getText().trim();
         String eps = epsField.getText() == null ? "" : epsField.getText().trim();
+        String errorEps = ValidacionService.mensajeErrorEps(eps);
+        if (errorEps != null) { errorLabel.setText(errorEps); marcarError(epsField); return; }
 
         try {
             String id = generarIdUnico();

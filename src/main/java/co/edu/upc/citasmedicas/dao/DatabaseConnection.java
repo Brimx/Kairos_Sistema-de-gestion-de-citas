@@ -423,6 +423,134 @@ public class DatabaseConnection {
         insertarAgenda(connection, "age-017", "med-005", 1, "14:00", "19:00", 45);
         insertarAgenda(connection, "age-018", "med-005", 3, "14:00", "19:00", 45);
         insertarAgenda(connection, "age-019", "med-005", 5, "14:00", "19:00", 45);
+
+        // === DATOS DEMO ADICIONALES ===
+
+        insertarUsuario(connection, "pac-007", "Valentina", "Restrepo", "valentina@demo.com", "1234", "3009998877", "PACIENTE");
+        insertarUsuario(connection, "pac-008", "Felipe", "Ortiz", "felipe@demo.com", "1234", "3007776655", "PACIENTE");
+        insertarUsuario(connection, "pac-009", "Camila", "Fernandez", "camila@demo.com", "1234", "3005554433", "PACIENTE");
+
+        insertarUsuario(connection, "med-006", "Laura", "Jimenez", "psiquiatria@demo.com", "1234", "3001110099", "MEDICO");
+        insertarUsuario(connection, "med-007", "Jorge", "Hernandez", "nutricion@demo.com", "1234", "3002221100", "MEDICO");
+
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO pacientes
+                (usuario_id, tipo_documento, numero_documento, fecha_nacimiento, direccion, eps)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """, "pac-007", "CC", "105500600", "1995-03-22", "Calle 10 #5-40", "Sura");
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO pacientes
+                (usuario_id, tipo_documento, numero_documento, fecha_nacimiento, direccion, eps)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """, "pac-008", "TI", "106600700", "2001-11-08", "Cr 30 #12-08", "Sanitas");
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO pacientes
+                (usuario_id, tipo_documento, numero_documento, fecha_nacimiento, direccion, eps)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """, "pac-009", "CE", "PZ-987654", "1988-07-14", "Av 15 #25-60", "Compensar");
+
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO medicos
+                (usuario_id, registro_medico, especialidad, consultorio, tipo_documento, numero_documento, direccion, eps)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, "med-006", "RM-7789", "PSIQUIATRIA", "Consultorio 405", "CC", "107700800", "Cra 25 #18-50", "Sura");
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO medicos
+                (usuario_id, registro_medico, especialidad, consultorio, tipo_documento, numero_documento, direccion, eps)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, "med-007", "RM-9902", "NUTRICION", "Consultorio 501", "CC", "108800900", "Calle 5 #10-20", "Sanitas");
+
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO citas
+                (id, paciente_id, medico_id, especialidad, servicio, fecha, hora_inicio, duracion, estado, tipo, motivo, origen, sobrecupo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, "cit-014", "pac-007", "med-006", "PSIQUIATRIA", "PSIQUIATRIA",
+                "2026-06-18", "14:00", "45", "PENDIENTE", "PRESENCIAL", "Primera consulta psiquiatrica", "PACIENTE", "0");
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO citas
+                (id, paciente_id, medico_id, especialidad, servicio, fecha, hora_inicio, duracion, estado, tipo, motivo, origen, sobrecupo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, "cit-015", "pac-008", "med-005", "PSICOLOGIA", "PSICOLOGIA",
+                "2026-06-19", "15:00", "45", "PENDIENTE", "VIRTUAL", "Terapia inicial", "PACIENTE", "0");
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO citas
+                (id, paciente_id, medico_id, especialidad, servicio, fecha, hora_inicio, duracion, estado, tipo, motivo, origen, sobrecupo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, "cit-016", "pac-003", "med-006", "PSIQUIATRIA", "PSIQUIATRIA",
+                "2026-06-22", "10:00", "45", "CONFIRMADA", "PRESENCIAL", "Control psiquiatrico", "CONTROL", "0");
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO citas
+                (id, paciente_id, medico_id, especialidad, servicio, fecha, hora_inicio, duracion, estado, tipo, motivo, origen, sobrecupo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, "cit-017", "pac-009", "med-007", "NUTRICION", "NUTRICION_DIETETICA",
+                "2026-06-23", "09:00", "30", "PENDIENTE", "PRESENCIAL", "Plan alimenticio personalizado", "PACIENTE", "0");
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO citas
+                (id, paciente_id, medico_id, especialidad, servicio, fecha, hora_inicio, duracion, estado, tipo, motivo, origen, sobrecupo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, "cit-018", "pac-001", "med-006", "PSIQUIATRIA", "PSIQUIATRIA",
+                "2026-06-25", "15:00", "45", "PENDIENTE", "VIRTUAL", "Evaluacion psiquiatrica", "PACIENTE", "0");
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO citas
+                (id, paciente_id, medico_id, especialidad, servicio, fecha, hora_inicio, duracion, estado, tipo, motivo, origen, sobrecupo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, "cit-019", "pac-002", "med-003", "PEDIATRIA", "VACUNACION",
+                "2026-06-26", "09:00", "15", "PENDIENTE", "PRESENCIAL", "Vacuna triple viral", "PACIENTE", "0");
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO citas
+                (id, paciente_id, medico_id, especialidad, servicio, fecha, hora_inicio, duracion, estado, tipo, motivo, origen, sobrecupo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, "cit-020", "pac-004", "med-001", "MEDICINA_GENERAL", "MEDICINA_GENERAL",
+                "2026-07-01", "08:00", "20", "PENDIENTE", "PRESENCIAL", "Dolor abdominal cronico", "PACIENTE", "0");
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO citas
+                (id, paciente_id, medico_id, especialidad, servicio, fecha, hora_inicio, duracion, estado, tipo, motivo, origen, sobrecupo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, "cit-021", "pac-005", "med-002", "ODONTOLOGIA", "ODONTOLOGIA_GENERAL",
+                "2026-07-02", "11:00", "30", "PENDIENTE", "PRESENCIAL", "Revaloracion odontologica", "PACIENTE", "0");
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO citas
+                (id, paciente_id, medico_id, especialidad, servicio, fecha, hora_inicio, duracion, estado, tipo, motivo, origen, sobrecupo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, "cit-022", "pac-006", "med-004", "DERMATOLOGIA", "DERMATOLOGIA",
+                "2026-07-03", "09:30", "20", "CONFIRMADA", "VIRTUAL", "Control lunar anual", "CONTROL", "0");
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO citas
+                (id, paciente_id, medico_id, especialidad, servicio, fecha, hora_inicio, duracion, estado, tipo, motivo, origen, sobrecupo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, "cit-023", "pac-007", "med-001", "MEDICINA_GENERAL", "ENFERMERIA_GENERAL",
+                "2026-06-17", "10:00", "15", "CONFIRMADA", "PRESENCIAL", "Toma de muestras laboratorio", "PACIENTE", "0");
+
+        insertarHistorial(connection, "his-004", "cit-011", "med-005", "pac-005", "2026-06-09",
+                "Trastorno de ansiedad generalizada. Se continua tratamiento farmacologico.",
+                "Paciente refiere mejora en sintomas de ansiedad. Episodios de insomnio ocasionales.",
+                "Sertralina 50mg cada 24 horas. Continuar terapia cognitivo-conductual.",
+                "N/A", "Se cita control en 4 semanas. Traer registro de sueno.");
+        insertarHistorial(connection, "his-005", "cit-013", "med-002", "pac-002", "2026-06-11",
+                "Urgencia odontologica: caries profunda en molar inferior derecho.",
+                "Dolor agudo a la masticacion. Sensibilidad al frio y al calor.",
+                "Amoxicilina 500mg cada 8 horas por 7 dias. Ibuprofeno 600mg cada 12 horas si dolor.",
+                "N/A", "Se programo tratamiento de conducto para la proxima semana.");
+
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO bloqueos_agenda
+                (id, medico_id, fecha, hora_inicio, hora_fin, motivo)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """, "blo-004", "med-004", "2026-07-03", null, null, "Congreso de dermatologia");
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO bloqueos_agenda
+                (id, medico_id, fecha, hora_inicio, hora_fin, motivo)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """, "blo-005", "med-005", "2026-06-19", "13:00", "14:00", "Almuerzo de equipo");
+
+        insertarAgenda(connection, "age-020", "med-006", 1, "08:00", "17:00", 45);
+        insertarAgenda(connection, "age-021", "med-006", 2, "08:00", "17:00", 45);
+        insertarAgenda(connection, "age-022", "med-006", 3, "08:00", "17:00", 45);
+        insertarAgenda(connection, "age-023", "med-006", 4, "08:00", "17:00", 45);
+        insertarAgenda(connection, "age-024", "med-006", 5, "08:00", "17:00", 45);
+        insertarAgenda(connection, "age-025", "med-007", 1, "07:00", "13:00", 30);
+        insertarAgenda(connection, "age-026", "med-007", 3, "07:00", "13:00", 30);
+        insertarAgenda(connection, "age-027", "med-007", 5, "07:00", "13:00", 30);
     }
 
     private static void insertarAgenda(Connection connection, String id, String medicoId, int diaSemana,

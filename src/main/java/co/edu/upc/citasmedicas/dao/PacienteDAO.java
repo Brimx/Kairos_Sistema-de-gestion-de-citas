@@ -125,7 +125,7 @@ public class PacienteDAO {
 
             stmtPaciente.setString(1, paciente.getTipoDocumento());
             stmtPaciente.setString(2, paciente.getNumeroDocumento());
-            stmtPaciente.setString(3, paciente.getFechaNacimiento().toString());
+            stmtPaciente.setString(3, paciente.getFechaNacimiento() != null ? paciente.getFechaNacimiento().toString() : null);
             stmtPaciente.setString(4, paciente.getDireccion());
             stmtPaciente.setString(5, paciente.getEps());
             stmtPaciente.setString(6, paciente.getId());
@@ -154,6 +154,8 @@ public class PacienteDAO {
     }
 
     private Paciente mapearPaciente(ResultSet resultSet) throws SQLException {
+        String fnStr = resultSet.getString("fecha_nacimiento");
+        LocalDate fn = fnStr != null ? LocalDate.parse(fnStr) : null;
         return new Paciente(
                 resultSet.getString("id"),
                 resultSet.getString("nombre"),
@@ -163,7 +165,7 @@ public class PacienteDAO {
                 resultSet.getString("telefono"),
                 resultSet.getString("tipo_documento"),
                 resultSet.getString("numero_documento"),
-                LocalDate.parse(resultSet.getString("fecha_nacimiento")),
+                fn,
                 resultSet.getString("direccion"),
                 resultSet.getString("eps")
         );

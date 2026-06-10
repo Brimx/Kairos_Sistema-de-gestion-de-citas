@@ -76,7 +76,7 @@ public class UsuarioDAO {
             stmtPaciente.setString(1, paciente.getId());
             stmtPaciente.setString(2, paciente.getTipoDocumento());
             stmtPaciente.setString(3, paciente.getNumeroDocumento());
-            stmtPaciente.setString(4, paciente.getFechaNacimiento().toString());
+            stmtPaciente.setString(4, paciente.getFechaNacimiento() != null ? paciente.getFechaNacimiento().toString() : null);
             stmtPaciente.setString(5, paciente.getDireccion());
             stmtPaciente.setString(6, paciente.getEps());
             stmtPaciente.executeUpdate();

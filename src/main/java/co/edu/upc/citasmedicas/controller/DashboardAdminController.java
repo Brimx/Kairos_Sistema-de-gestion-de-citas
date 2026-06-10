@@ -21,6 +21,7 @@ import co.edu.upc.citasmedicas.service.DisponibilidadService;
 import co.edu.upc.citasmedicas.service.InasistenciaService;
 import co.edu.upc.citasmedicas.service.PacienteService;
 import co.edu.upc.citasmedicas.service.Session;
+import co.edu.upc.citasmedicas.service.ValidacionService;
 import co.edu.upc.citasmedicas.view.ViewManager;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -297,7 +298,9 @@ public class DashboardAdminController {
         TextField apellido = new TextField(sel.getApellido());
         TextField email = new TextField(sel.getEmail());
         TextField telefono = new TextField(sel.getTelefono());
-        TextField tipoDoc = new TextField(sel.getTipoDocumento());
+        ComboBox<String> tipoDoc = new ComboBox<>();
+        tipoDoc.setItems(FXCollections.observableArrayList("CC", "TI", "CE", "Pasaporte"));
+        tipoDoc.setValue(sel.getTipoDocumento());
         TextField numDoc = new TextField(sel.getNumeroDocumento());
         DatePicker fechaNac = new DatePicker(sel.getFechaNacimiento());
         TextField direccion = new TextField(sel.getDireccion());
@@ -313,14 +316,32 @@ public class DashboardAdminController {
 
         dialog.setResultConverter(btn -> {
             if (btn == btnGuardar) {
+                String nombreVal = nombre.getText().trim();
+                String apellidoVal = apellido.getText().trim();
+                String numDocVal = numDoc.getText().trim();
+                String epsVal = eps.getText().trim();
+
+                String errNom = ValidacionService.mensajeErrorNombre(nombreVal);
+                if (errNom != null) { mostrarError(lblMensaje, errNom); return null; }
+                String errApe = ValidacionService.mensajeErrorNombre(apellidoVal);
+                if (errApe != null) { mostrarError(lblMensaje, errApe); return null; }
+                String errDoc = ValidacionService.mensajeErrorNumeroDocumento(numDocVal);
+                if (errDoc != null) { mostrarError(lblMensaje, errDoc); return null; }
+                String errEps = ValidacionService.mensajeErrorEps(epsVal);
+                if (errEps != null) { mostrarError(lblMensaje, errEps); return null; }
+
+                String emailValMod = email.getText().trim().toLowerCase();
+                String errEmailMod = ValidacionService.mensajeErrorEmail(emailValMod);
+                if (errEmailMod != null) { mostrarError(lblMensaje, errEmailMod); return null; }
+
                 try {
                     return new Paciente(
                             sel.getId(),
-                            nombre.getText().trim(), apellido.getText().trim(),
-                            email.getText().trim(), sel.getPassword(),
+                            nombreVal, apellidoVal,
+                            emailValMod, sel.getPassword(),
                             telefono.getText().trim(),
-                            tipoDoc.getText().trim(), numDoc.getText().trim(),
-                            fechaNac.getValue(), direccion.getText().trim(), eps.getText().trim()
+                            tipoDoc.getValue(), numDocVal,
+                            fechaNac.getValue(), direccion.getText().trim(), epsVal
                     );
                 } catch (Exception e) {
                     mostrarError(lblMensaje, "Datos invalidos: " + e.getMessage());
@@ -386,7 +407,9 @@ public class DashboardAdminController {
         TextField email = new TextField(); email.setPromptText("Email");
         TextField password = new TextField(); password.setPromptText("Password");
         TextField telefono = new TextField(); telefono.setPromptText("Telefono");
-        TextField tipoDoc = new TextField(); tipoDoc.setPromptText("Tipo doc (CC, TI, CE)");
+        ComboBox<String> tipoDoc = new ComboBox<>();
+        tipoDoc.setItems(FXCollections.observableArrayList("CC", "TI", "CE", "Pasaporte"));
+        tipoDoc.setValue("CC");
         TextField numDoc = new TextField(); numDoc.setPromptText("Numero documento");
         DatePicker fechaNac = new DatePicker(); fechaNac.setPromptText("Fecha nacimiento");
         TextField direccion = new TextField(); direccion.setPromptText("Direccion");
@@ -402,14 +425,32 @@ public class DashboardAdminController {
 
         dialog.setResultConverter(btn -> {
             if (btn == btnGuardar) {
+                String nombreVal = nombre.getText().trim();
+                String apellidoVal = apellido.getText().trim();
+                String numDocVal = numDoc.getText().trim();
+                String epsVal = eps.getText().trim();
+
+                String errNom = ValidacionService.mensajeErrorNombre(nombreVal);
+                if (errNom != null) { mostrarError(lblMensaje, errNom); return null; }
+                String errApe = ValidacionService.mensajeErrorNombre(apellidoVal);
+                if (errApe != null) { mostrarError(lblMensaje, errApe); return null; }
+                String errDoc = ValidacionService.mensajeErrorNumeroDocumento(numDocVal);
+                if (errDoc != null) { mostrarError(lblMensaje, errDoc); return null; }
+                String errEps = ValidacionService.mensajeErrorEps(epsVal);
+                if (errEps != null) { mostrarError(lblMensaje, errEps); return null; }
+
+                String emailValNuevo = email.getText().trim().toLowerCase();
+                String errEmailNuevo = ValidacionService.mensajeErrorEmail(emailValNuevo);
+                if (errEmailNuevo != null) { mostrarError(lblMensaje, errEmailNuevo); return null; }
+
                 try {
                     return new Paciente(
                             UUID.randomUUID().toString().substring(0, 8),
-                            nombre.getText().trim(), apellido.getText().trim(),
-                            email.getText().trim(), password.getText().trim(),
+                            nombreVal, apellidoVal,
+                            emailValNuevo, password.getText().trim(),
                             telefono.getText().trim(),
-                            tipoDoc.getText().trim(), numDoc.getText().trim(),
-                            fechaNac.getValue(), direccion.getText().trim(), eps.getText().trim()
+                            tipoDoc.getValue(), numDocVal,
+                            fechaNac.getValue(), direccion.getText().trim(), epsVal
                     );
                 } catch (Exception e) {
                     mostrarError(lblMensaje, "Datos invalidos: " + e.getMessage());
@@ -460,7 +501,9 @@ public class DashboardAdminController {
                 java.util.Arrays.stream(Especialidad.values()).map(Especialidad::getNombre).toList()
         ));
         especialidad.setValue(sel.getEspecialidad().getNombre());
-        TextField tipoDoc = new TextField(sel.getTipoDocumento());
+        ComboBox<String> tipoDoc = new ComboBox<>();
+        tipoDoc.setItems(FXCollections.observableArrayList("CC", "TI", "CE", "Pasaporte"));
+        tipoDoc.setValue(sel.getTipoDocumento());
         TextField numDoc = new TextField(sel.getNumeroDocumento());
         DatePicker fechaNac = new DatePicker(sel.getFechaNacimiento());
         TextField direccion = new TextField(sel.getDireccion());
@@ -475,6 +518,20 @@ public class DashboardAdminController {
 
         dialog.setResultConverter(btn -> {
             if (btn == btnGuardar) {
+                String nombreVal = nombre.getText().trim();
+                String apellidoVal = apellido.getText().trim();
+                String numDocVal = numDoc.getText().trim();
+                String epsVal = eps.getText().trim();
+
+                String errNom = ValidacionService.mensajeErrorNombre(nombreVal);
+                if (errNom != null) { mostrarError(lblMensajeMedicos, errNom); return null; }
+                String errApe = ValidacionService.mensajeErrorNombre(apellidoVal);
+                if (errApe != null) { mostrarError(lblMensajeMedicos, errApe); return null; }
+                String errDoc = ValidacionService.mensajeErrorNumeroDocumento(numDocVal);
+                if (errDoc != null) { mostrarError(lblMensajeMedicos, errDoc); return null; }
+                String errEps = ValidacionService.mensajeErrorEps(epsVal);
+                if (errEps != null) { mostrarError(lblMensajeMedicos, errEps); return null; }
+
                 try {
                     String espNombre = especialidad.getValue();
                     Especialidad esp = espNombre != null
@@ -482,12 +539,12 @@ public class DashboardAdminController {
                             : sel.getEspecialidad();
                     return new Medico(
                             sel.getId(),
-                            nombre.getText().trim(), apellido.getText().trim(),
+                            nombreVal, apellidoVal,
                             sel.getEmail(), sel.getPassword(),
                             telefono.getText().trim(),
                             registro.getText().trim(), esp,
-                            tipoDoc.getText().trim(), numDoc.getText().trim(),
-                            fechaNac.getValue(), direccion.getText().trim(), eps.getText().trim()
+                            tipoDoc.getValue(), numDocVal,
+                            fechaNac.getValue(), direccion.getText().trim(), epsVal
                     );
                 } catch (Exception e) {
                     mostrarError(lblMensajeMedicos, "Datos invalidos: " + e.getMessage());
