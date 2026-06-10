@@ -6,5 +6,4 @@ target/
 .project
 .github/
 citasmedicas.db
-.opencodeignore
 docs/
