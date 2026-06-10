@@ -31,7 +31,7 @@ El sistema gestiona el ciclo de vida completo de una cita médica: desde que el 
 ## Tecnologías utilizadas
 
 | Tecnología | Versión | Uso |
-|---|---|---|---|
+|---|---|---|
 | Java | 17+ | Lenguaje principal |
 | JavaFX | 21.0.2 | Interfaz gráfica de usuario |
 | FXML | — | Definición declarativa de vistas |
