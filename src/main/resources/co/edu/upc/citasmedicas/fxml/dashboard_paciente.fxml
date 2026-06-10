@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
@@ -11,6 +13,9 @@
     <top>
         <HBox styleClass="header-bar">
             <padding><Insets top="14" right="20" bottom="14" left="20"/></padding>
+            <ImageView fitHeight="28" fitWidth="28" preserveRatio="true">
+                <Image url="@../img/icon.png"/>
+            </ImageView>
             <Label fx:id="lblBienvenida" styleClass="header-title"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Label fx:id="lblContador" styleClass="header-subtitle"/>
@@ -46,7 +51,10 @@
                     <ComboBox fx:id="cbTipo" maxWidth="Infinity"/>
 
                     <Label text="Motivo de consulta:" styleClass="field-label"/>
-                    <TextField fx:id="txtMotivo" promptText="Describe tu motivo (opcional)" styleClass="input-height" maxWidth="Infinity"/>
+                    <HBox spacing="4" maxWidth="Infinity">
+                        <TextArea fx:id="txtMotivo" promptText="Describe tu motivo (opcional)" styleClass="motivo-textarea" maxWidth="Infinity" HBox.hgrow="ALWAYS" prefRowCount="3" wrapText="true"/>
+                        <Button text="↗" onAction="#handleExpandirMotivo" styleClass="btn-expand" prefWidth="32"/>
+                    </HBox>
 
                     <Button text="Agendar cita" onAction="#handleAgendarCita" styleClass="btn-agendar"/>
 

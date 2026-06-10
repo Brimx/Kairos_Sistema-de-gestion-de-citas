@@ -192,6 +192,7 @@ public class DashboardMedicoController {
         calendarView.getCalendarSources().setAll(calendarSource);
 
         calendarView.setRequestedTime(LocalTime.now());
+        // calendarView.setShowSourceButton(false); // not in this CalendarFX version
 
         Thread timeThread = new Thread(() -> {
             while (true) {
@@ -294,6 +295,7 @@ public class DashboardMedicoController {
         Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION,
                 "Marcar como completada la cita de " + sel.getPaciente().getNombre() + "?",
                 ButtonType.YES, ButtonType.NO);
+        ViewManager.styleAlert(dialogo);
         dialogo.showAndWait().ifPresent(boton -> {
             if (boton == ButtonType.YES) {
                 try {
@@ -317,6 +319,7 @@ public class DashboardMedicoController {
         Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION,
                 "Marcar como inasistencia la cita de " + sel.getPaciente().getNombre() + "?",
                 ButtonType.YES, ButtonType.NO);
+        ViewManager.styleAlert(dialogo);
         dialogo.showAndWait().ifPresent(boton -> {
             if (boton == ButtonType.YES) {
                 try {
@@ -346,6 +349,7 @@ public class DashboardMedicoController {
 
         ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
         dialog.getDialogPane().getButtonTypes().add(btnCerrar);
+        ViewManager.styleDialog(dialog);
 
         VBox content = new VBox(12);
         content.setPadding(new Insets(16));
@@ -437,8 +441,9 @@ public class DashboardMedicoController {
 
             AgendaMedica existente = agendaMedicaDAO.obtenerPorMedicoYDia(medico.getId(), dia);
             if (existente != null) {
-                Alert a = new Alert(Alert.AlertType.CONFIRMATION,
-                        "Ya existe un horario para este dia. Sobrescribir?", ButtonType.YES, ButtonType.NO);
+            Alert a = new Alert(Alert.AlertType.CONFIRMATION,
+                    "Ya existe un horario para este dia. Sobrescribir?", ButtonType.YES, ButtonType.NO);
+                ViewManager.styleAlert(a);
                 if (a.showAndWait().orElse(ButtonType.NO) != ButtonType.YES) return;
                 agendaMedicaDAO.eliminar(existente.getId());
             }
@@ -455,6 +460,7 @@ public class DashboardMedicoController {
             if (sel == null) return;
             Alert a = new Alert(Alert.AlertType.CONFIRMATION,
                     "Eliminar el horario del dia seleccionado?", ButtonType.YES, ButtonType.NO);
+            ViewManager.styleAlert(a);
             if (a.showAndWait().orElse(ButtonType.NO) != ButtonType.YES) return;
             agendaMedicaDAO.eliminar(sel.getId());
             listaHorarios.setAll(agendaMedicaDAO.listarPorMedico(medico.getId()));
@@ -485,6 +491,7 @@ public class DashboardMedicoController {
 
         ButtonType btnGuardar = new ButtonType("Guardar y finalizar consulta", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, ButtonType.CANCEL);
+        ViewManager.styleDialog(dialog);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -567,6 +574,7 @@ public class DashboardMedicoController {
 
         ButtonType btnGuardar = new ButtonType("Guardar cambios", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, ButtonType.CANCEL);
+        ViewManager.styleDialog(dialog);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -583,12 +591,18 @@ public class DashboardMedicoController {
                 java.util.Arrays.stream(Especialidad.values()).map(Especialidad::getNombre).toList()
         ));
         especialidad.setValue(medico.getEspecialidad().getNombre());
-        TextField consultorio = new TextField(medico.getConsultorio());
+        TextField tipoDoc = new TextField(medico.getTipoDocumento());
+        TextField numDoc = new TextField(medico.getNumeroDocumento());
+        DatePicker fechaNac = new DatePicker(medico.getFechaNacimiento());
+        TextField direccion = new TextField(medico.getDireccion());
+        TextField eps = new TextField(medico.getEps());
 
         grid.addRow(0, new Label("Nombre:"), nombre, new Label("Apellido:"), apellido);
         grid.addRow(1, new Label("Email:"), email, new Label("Telefono:"), telefono);
         grid.addRow(2, new Label("Registro:"), registro, new Label("Especialidad:"), especialidad);
-        grid.addRow(3, new Label("Consultorio:"), consultorio);
+        grid.addRow(3, new Label("Tipo doc:"), tipoDoc, new Label("Num doc:"), numDoc);
+        grid.addRow(4, new Label("Fecha nac:"), fechaNac, new Label("Direccion:"), direccion);
+        grid.addRow(5, new Label("EPS:"), eps);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -605,7 +619,8 @@ public class DashboardMedicoController {
                             email.getText().trim(), medico.getPassword(),
                             telefono.getText().trim(),
                             registro.getText().trim(), esp,
-                            consultorio.getText().trim()
+                            tipoDoc.getText().trim(), numDoc.getText().trim(),
+                            fechaNac.getValue(), direccion.getText().trim(), eps.getText().trim()
                     );
                 } catch (Exception e) {
                     mostrarError(lblMensaje, "Datos invalidos: " + e.getMessage());
@@ -643,6 +658,7 @@ public class DashboardMedicoController {
 
         ButtonType btnGuardar = new ButtonType("Guardar cambios", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, ButtonType.CANCEL);
+        ViewManager.styleDialog(dialog);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -749,6 +765,7 @@ public class DashboardMedicoController {
 
         ButtonType btnAgendar = new ButtonType("Agendar control", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnAgendar, ButtonType.CANCEL);
+        ViewManager.styleDialog(dialog);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);

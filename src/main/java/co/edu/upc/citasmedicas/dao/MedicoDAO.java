@@ -7,12 +7,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Acceso a datos para la entidad Medico.
- */
 public class MedicoDAO {
 
     public void guardar(Medico medico) {
@@ -22,8 +20,9 @@ public class MedicoDAO {
                 """;
 
         String sqlMedico = """
-                INSERT INTO medicos (usuario_id, registro_medico, especialidad, consultorio)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO medicos (usuario_id, registro_medico, especialidad, consultorio,
+                    tipo_documento, numero_documento, fecha_nacimiento, direccion, eps)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection connection = DatabaseConnection.getConnection();
@@ -32,7 +31,6 @@ public class MedicoDAO {
 
             connection.setAutoCommit(false);
 
-            // Guardar en tabla usuarios
             stmtUsuario.setString(1, medico.getId());
             stmtUsuario.setString(2, medico.getNombre());
             stmtUsuario.setString(3, medico.getApellido());
@@ -41,23 +39,29 @@ public class MedicoDAO {
             stmtUsuario.setString(6, medico.getTelefono());
             stmtUsuario.executeUpdate();
 
-            // Guardar en tabla medicos
             stmtMedico.setString(1, medico.getId());
             stmtMedico.setString(2, medico.getRegistroMedico());
             stmtMedico.setString(3, medico.getEspecialidad().name());
-            stmtMedico.setString(4, medico.getConsultorio());
+            stmtMedico.setString(4, "");
+            stmtMedico.setString(5, medico.getTipoDocumento());
+            stmtMedico.setString(6, medico.getNumeroDocumento());
+            stmtMedico.setString(7, medico.getFechaNacimiento() != null ? medico.getFechaNacimiento().toString() : null);
+            stmtMedico.setString(8, medico.getDireccion());
+            stmtMedico.setString(9, medico.getEps());
             stmtMedico.executeUpdate();
 
             connection.commit();
         } catch (SQLException exception) {
-            throw new IllegalStateException("No se pudo guardar el médico", exception);
+            throw new IllegalStateException("No se pudo guardar el medico", exception);
         }
     }
 
     public List<Medico> obtenerTodos() {
         String sql = """
                 SELECT u.id, u.nombre, u.apellido, u.email, u.password, u.telefono,
-                       m.registro_medico, m.especialidad, m.consultorio
+                       m.registro_medico, m.especialidad, m.consultorio,
+                       m.tipo_documento, m.numero_documento, m.fecha_nacimiento,
+                       m.direccion, m.eps
                 FROM medicos m
                 JOIN usuarios u ON u.id = m.usuario_id
                 WHERE u.activo = 1
@@ -82,11 +86,13 @@ public class MedicoDAO {
 
     public void actualizar(Medico medico) {
         String sqlUsuario = """
-                UPDATE usuarios SET nombre = ?, apellido = ?, telefono = ?
+                UPDATE usuarios SET nombre = ?, apellido = ?, email = ?, telefono = ?
                 WHERE id = ? AND rol = 'MEDICO' AND activo = 1
                 """;
         String sqlMedico = """
-                UPDATE medicos SET registro_medico = ?, especialidad = ?, consultorio = ?
+                UPDATE medicos SET registro_medico = ?, especialidad = ?,
+                    tipo_documento = ?, numero_documento = ?, fecha_nacimiento = ?,
+                    direccion = ?, eps = ?
                 WHERE usuario_id = ?
                 """;
 
@@ -98,8 +104,9 @@ public class MedicoDAO {
 
             stmtUsuario.setString(1, medico.getNombre());
             stmtUsuario.setString(2, medico.getApellido());
-            stmtUsuario.setString(3, medico.getTelefono());
-            stmtUsuario.setString(4, medico.getId());
+            stmtUsuario.setString(3, medico.getEmail());
+            stmtUsuario.setString(4, medico.getTelefono());
+            stmtUsuario.setString(5, medico.getId());
 
             if (stmtUsuario.executeUpdate() == 0) {
                 throw new IllegalArgumentException("No se encontro un medico activo con ese id");
@@ -107,8 +114,12 @@ public class MedicoDAO {
 
             stmtMedico.setString(1, medico.getRegistroMedico());
             stmtMedico.setString(2, medico.getEspecialidad().name());
-            stmtMedico.setString(3, medico.getConsultorio());
-            stmtMedico.setString(4, medico.getId());
+            stmtMedico.setString(3, medico.getTipoDocumento());
+            stmtMedico.setString(4, medico.getNumeroDocumento());
+            stmtMedico.setString(5, medico.getFechaNacimiento() != null ? medico.getFechaNacimiento().toString() : null);
+            stmtMedico.setString(6, medico.getDireccion());
+            stmtMedico.setString(7, medico.getEps());
+            stmtMedico.setString(8, medico.getId());
             stmtMedico.executeUpdate();
 
             connection.commit();
@@ -136,7 +147,9 @@ public class MedicoDAO {
     public Medico buscarPorId(String id) {
         String sql = """
                 SELECT u.id, u.nombre, u.apellido, u.email, u.password, u.telefono,
-                       m.registro_medico, m.especialidad, m.consultorio
+                       m.registro_medico, m.especialidad, m.consultorio,
+                       m.tipo_documento, m.numero_documento, m.fecha_nacimiento,
+                       m.direccion, m.eps
                 FROM medicos m
                 JOIN usuarios u ON u.id = m.usuario_id
                 WHERE u.id = ?
@@ -160,6 +173,7 @@ public class MedicoDAO {
     }
 
     private Medico mapearMedico(ResultSet resultSet) throws SQLException {
+        String fn = resultSet.getString("fecha_nacimiento");
         return new Medico(
                 resultSet.getString("id"),
                 resultSet.getString("nombre"),
@@ -169,7 +183,11 @@ public class MedicoDAO {
                 resultSet.getString("telefono"),
                 resultSet.getString("registro_medico"),
                 Especialidad.valueOf(resultSet.getString("especialidad")),
-                resultSet.getString("consultorio")
+                resultSet.getString("tipo_documento"),
+                resultSet.getString("numero_documento"),
+                fn != null ? LocalDate.parse(fn) : null,
+                resultSet.getString("direccion"),
+                resultSet.getString("eps")
         );
     }
 }

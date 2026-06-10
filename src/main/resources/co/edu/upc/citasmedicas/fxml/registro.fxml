@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.PasswordField?>
@@ -9,69 +13,114 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.geometry.Insets?>
 
-<ScrollPane fitToWidth="true" fitToHeight="true"
-            xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="co.edu.upc.citasmedicas.controller.RegistroController"
-            stylesheets="@../css/styles.css" styleClass="bg-default">
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="co.edu.upc.citasmedicas.controller.RegistroController"
+           stylesheets="@../css/styles.css">
 
-    <VBox alignment="CENTER" spacing="12.0" prefWidth="480.0"
+    <ScrollPane fitToWidth="true" fitToHeight="true" styleClass="bg-default">
+
+    <VBox alignment="CENTER" spacing="12.0" prefWidth="560.0"
           styleClass="login-container">
 
         <padding>
             <Insets top="24.0" right="24.0" bottom="24.0" left="24.0" />
         </padding>
 
+        <ImageView fitHeight="64" fitWidth="64" preserveRatio="true">
+            <Image url="@../img/icon.png"/>
+        </ImageView>
+
         <Label text="Registro de Usuario" styleClass="title-label"/>
 
-        <VBox spacing="8.0" prefWidth="300.0">
-            <Label text="Datos personales" styleClass="section-title"/>
+        <!-- ===== PASO 1: Rol ===== -->
+        <VBox fx:id="step1" spacing="12" prefWidth="400">
+            <Label text="Nombre" styleClass="field-label"/>
+            <TextField fx:id="nombreField" promptText="Nombre" styleClass="text-field input-field"/>
 
-            <TextField fx:id="nombreField" promptText="Nombre" styleClass="input-field"/>
-            <TextField fx:id="apellidoField" promptText="Apellido" styleClass="input-field"/>
-            <TextField fx:id="emailField" promptText="Email" styleClass="input-field"/>
-            <HBox spacing="0" maxWidth="Infinity" styleClass="password-wrapper">
-                <StackPane HBox.hgrow="ALWAYS" maxWidth="Infinity">
-                    <PasswordField fx:id="passwordField" promptText="Contraseña" styleClass="input-field-pwd" maxWidth="Infinity"/>
-                    <TextField fx:id="passwordVisibleField" promptText="Contraseña" styleClass="input-field-pwd" visible="false" managed="false" maxWidth="Infinity"/>
-                </StackPane>
-                <Button fx:id="togglePasswordBtn" text="👁" styleClass="toggle-password-btn" onAction="#togglePasswordVisibility"/>
-            </HBox>
-            <TextField fx:id="telefonoField" promptText="Teléfono" styleClass="input-field"/>
-            <TextField fx:id="confirmarTelefonoField" promptText="Confirmar teléfono" styleClass="input-field"/>
+            <Label text="Apellido" styleClass="field-label"/>
+            <TextField fx:id="apellidoField" promptText="Apellido" styleClass="text-field input-field"/>
+
+            <Label text="Tipo de usuario" styleClass="field-label"/>
+            <ComboBox fx:id="rolComboBox" promptText="Seleccionar rol" styleClass="combo-box input-field" maxWidth="Infinity"/>
+
+            <TextField fx:id="codigoAdminField" promptText="Codigo de administrador" styleClass="text-field input-field"
+                       visible="false" managed="false"/>
+
+            <Button text="Siguiente →" onAction="#handleSiguiente" styleClass="login-button" maxWidth="Infinity"/>
         </VBox>
 
-        <VBox spacing="8.0" prefWidth="300.0" fx:id="documentoPanel">
+        <Separator fx:id="separatorStep" visible="false" managed="false"/>
+
+        <!-- ===== PASO 2: Datos especificos ===== -->
+        <VBox fx:id="step2" spacing="10" prefWidth="500" visible="false" managed="false">
+
+            <Label text="Datos de la cuenta" styleClass="section-title"/>
+            <GridPane hgap="12" vgap="8" prefWidth="500">
+                <columnConstraints>
+                    <ColumnConstraints percentWidth="50" hgrow="ALWAYS"/>
+                    <ColumnConstraints percentWidth="50" hgrow="ALWAYS"/>
+                </columnConstraints>
+                <TextField fx:id="emailField" promptText="Email" styleClass="text-field input-field"
+                           GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                <HBox spacing="0" maxWidth="Infinity" styleClass="password-wrapper"
+                      GridPane.columnIndex="1" GridPane.rowIndex="0">
+                    <StackPane HBox.hgrow="ALWAYS" maxWidth="Infinity">
+                        <PasswordField fx:id="passwordField" promptText="Contrasena" styleClass="password-field input-field-pwd" maxWidth="Infinity"/>
+                        <TextField fx:id="passwordVisibleField" promptText="Contrasena" styleClass="text-field input-field-pwd" visible="false" managed="false" maxWidth="Infinity"/>
+                    </StackPane>
+                    <Button fx:id="togglePasswordBtn" text="👁" styleClass="toggle-password-btn" onAction="#togglePasswordVisibility"/>
+                </HBox>
+                <TextField fx:id="telefonoField" promptText="Telefono" styleClass="text-field input-field"
+                           GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                <TextField fx:id="confirmarTelefonoField" promptText="Confirmar telefono" styleClass="text-field input-field"
+                           GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+            </GridPane>
+
             <Label text="Documento de identidad" styleClass="section-title"/>
-            <HBox spacing="8">
-                <ComboBox fx:id="tipoDocCombo" promptText="Tipo documento" prefWidth="140" styleClass="input-field"/>
-                <TextField fx:id="numeroDocField" promptText="Número de documento" HBox.hgrow="ALWAYS" styleClass="input-field"/>
+            <GridPane hgap="12" vgap="8" prefWidth="500">
+                <columnConstraints>
+                    <ColumnConstraints percentWidth="50" hgrow="ALWAYS"/>
+                    <ColumnConstraints percentWidth="50" hgrow="ALWAYS"/>
+                </columnConstraints>
+                <ComboBox fx:id="tipoDocCombo" promptText="Tipo documento" styleClass="combo-box input-field" maxWidth="Infinity"
+                          GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                <TextField fx:id="numeroDocField" promptText="Numero de documento" styleClass="text-field input-field"
+                           GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                <DatePicker fx:id="fechaNacField" promptText="Fecha de nacimiento" styleClass="date-picker input-field" maxWidth="Infinity"
+                            GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                <TextField fx:id="direccionField" promptText="Direccion (opcional)" styleClass="text-field input-field"
+                           GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                <TextField fx:id="epsField" promptText="EPS (opcional)" styleClass="text-field input-field"
+                           GridPane.columnIndex="0" GridPane.columnSpan="2" GridPane.rowIndex="2"/>
+            </GridPane>
+
+            <!-- Medico-only fields -->
+            <VBox fx:id="medicoExtraPanel" spacing="8" visible="false" managed="false">
+                <Label text="Datos profesionales" styleClass="section-title"/>
+                <GridPane hgap="12" vgap="8" prefWidth="500">
+                    <columnConstraints>
+                        <ColumnConstraints percentWidth="50" hgrow="ALWAYS"/>
+                        <ColumnConstraints percentWidth="50" hgrow="ALWAYS"/>
+                    </columnConstraints>
+                    <TextField fx:id="registroMedicoField" promptText="Registro medico" styleClass="text-field input-field"
+                               GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                    <ComboBox fx:id="especialidadCombo" promptText="Especialidad" styleClass="combo-box input-field" maxWidth="Infinity"
+                              GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                </GridPane>
+            </VBox>
+
+            <HBox spacing="12" alignment="CENTER" maxWidth="Infinity">
+                <Button text="← Atras" onAction="#handleAtras" styleClass="secondary-button" prefWidth="140"/>
+                <Button text="Registrar" onAction="#handleRegistrar" styleClass="login-button" prefWidth="140" HBox.hgrow="ALWAYS"/>
             </HBox>
-            <DatePicker fx:id="fechaNacField" promptText="Fecha de nacimiento" maxWidth="Infinity" styleClass="input-field"/>
-            <TextField fx:id="direccionField" promptText="Dirección" styleClass="input-field"/>
-            <TextField fx:id="epsField" promptText="EPS" styleClass="input-field"/>
         </VBox>
 
-        <VBox spacing="8.0" prefWidth="300.0" fx:id="medicoPanel" visible="false" managed="false">
-            <Label text="Datos del médico" styleClass="section-title"/>
-            <TextField fx:id="registroMedicoField" promptText="Registro médico" styleClass="input-field"/>
-            <ComboBox fx:id="especialidadCombo" promptText="Especialidad" styleClass="input-field"/>
-            <TextField fx:id="consultorioField" promptText="Consultorio" styleClass="input-field"/>
-        </VBox>
-
-        <VBox spacing="8.0" prefWidth="300.0">
-            <Label text="Tipo de usuario" styleClass="section-title"/>
-
-            <ComboBox fx:id="rolComboBox" promptText="Seleccionar rol" styleClass="input-field"/>
-
-            <TextField fx:id="codigoAdminField" promptText="Código de administrador (solo si es ADMIN)" styleClass="input-field"/>
-        </VBox>
-
-        <Button text="Registrar" onAction="#handleRegistrar" styleClass="login-button"/>
-        <Button text="Volver al Login" onAction="#handleVolverLogin" styleClass="secondary-button"/>
-
-        <Label fx:id="errorLabel" wrapText="true" maxWidth="350.0" styleClass="helper-label"/>
-        <Label fx:id="successLabel" wrapText="true" maxWidth="350.0" styleClass="success-label"/>
+        <Label fx:id="errorLabel" wrapText="true" maxWidth="450.0" styleClass="helper-label"/>
+        <Label fx:id="successLabel" wrapText="true" maxWidth="450.0" styleClass="success-label"/>
     </VBox>
 </ScrollPane>
+
+</StackPane>

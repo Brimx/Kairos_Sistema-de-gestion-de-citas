@@ -1,6 +1,7 @@
 package co.edu.upc.citasmedicas.controller;
 
 import co.edu.upc.citasmedicas.dao.AdministradorDAO;
+import co.edu.upc.citasmedicas.dao.ConfiguracionDAO;
 import co.edu.upc.citasmedicas.dao.MedicoDAO;
 import co.edu.upc.citasmedicas.dao.PacienteDAO;
 import co.edu.upc.citasmedicas.dao.UsuarioDAO;
@@ -23,28 +24,30 @@ import java.util.UUID;
 
 public class RegistroController {
 
+    @FXML private VBox step1;
+    @FXML private VBox step2;
+    @FXML private Separator separatorStep;
+
     @FXML private TextField nombreField;
     @FXML private TextField apellidoField;
+    @FXML private ComboBox<String> rolComboBox;
+    @FXML private TextField codigoAdminField;
+
     @FXML private TextField emailField;
     @FXML private PasswordField passwordField;
     @FXML private TextField passwordVisibleField;
     @FXML private Button togglePasswordBtn;
     @FXML private TextField telefonoField;
     @FXML private TextField confirmarTelefonoField;
-    @FXML private ComboBox<String> rolComboBox;
-    @FXML private TextField codigoAdminField;
-
-    @FXML private VBox documentoPanel;
     @FXML private ComboBox<String> tipoDocCombo;
     @FXML private TextField numeroDocField;
     @FXML private DatePicker fechaNacField;
     @FXML private TextField direccionField;
     @FXML private TextField epsField;
 
-    @FXML private VBox medicoPanel;
+    @FXML private VBox medicoExtraPanel;
     @FXML private TextField registroMedicoField;
     @FXML private ComboBox<String> especialidadCombo;
-    @FXML private TextField consultorioField;
 
     @FXML private Label errorLabel;
     @FXML private Label successLabel;
@@ -53,8 +56,7 @@ public class RegistroController {
     private final PacienteDAO pacienteDAO = new PacienteDAO();
     private final MedicoDAO medicoDAO = new MedicoDAO();
     private final AdministradorDAO administradorDAO = new AdministradorDAO();
-
-    private static final String CODIGO_ADMIN_SECRETO = "ADMIN-SECRET-2026";
+    private final ConfiguracionDAO configuracionDAO = new ConfiguracionDAO();
 
     @FXML
     public void initialize() {
@@ -72,36 +74,18 @@ public class RegistroController {
         ));
 
         rolComboBox.valueProperty().addListener((obs, old, rol) -> {
-            boolean esPaciente = "PACIENTE".equals(rol);
-            boolean esMedico = "MEDICO".equals(rol);
-            boolean esAdmin = "ADMINISTRADOR".equals(rol);
-
-            documentoPanel.setVisible(esPaciente);
-            documentoPanel.setManaged(esPaciente);
-
-            medicoPanel.setVisible(esMedico);
-            medicoPanel.setManaged(esMedico);
-
-            codigoAdminField.setVisible(esAdmin);
-            codigoAdminField.setManaged(esAdmin);
+            codigoAdminField.setVisible("ADMINISTRADOR".equals(rol));
+            codigoAdminField.setManaged("ADMINISTRADOR".equals(rol));
         });
 
         emailField.focusedProperty().addListener((obs, viejo, nuevo) -> {
-            if (!nuevo) {
-                validarEmailCampo();
-            }
+            if (!nuevo) validarEmailCampo();
         });
-
         telefonoField.focusedProperty().addListener((obs, viejo, nuevo) -> {
-            if (!nuevo) {
-                validarTelefonoCampo();
-            }
+            if (!nuevo) validarTelefonoCampo();
         });
-
         confirmarTelefonoField.focusedProperty().addListener((obs, viejo, nuevo) -> {
-            if (!nuevo && !confirmarTelefonoField.getText().isBlank()) {
-                validarConfirmarTelefonoCampo();
-            }
+            if (!nuevo && !confirmarTelefonoField.getText().isBlank()) validarConfirmarTelefonoCampo();
         });
     }
 
@@ -126,6 +110,55 @@ public class RegistroController {
     }
 
     @FXML
+    private void handleSiguiente() {
+        errorLabel.setText("");
+        successLabel.setText("");
+
+        String nombre = nombreField.getText() == null ? "" : nombreField.getText().trim();
+        String apellido = apellidoField.getText() == null ? "" : apellidoField.getText().trim();
+        String rol = rolComboBox.getValue();
+
+        if (nombre.isEmpty()) { errorLabel.setText("El nombre es obligatorio"); marcarError(nombreField); return; }
+        if (apellido.isEmpty()) { errorLabel.setText("El apellido es obligatorio"); marcarError(apellidoField); return; }
+        if (rol == null) { errorLabel.setText("Selecciona un tipo de usuario"); return; }
+
+        if ("ADMINISTRADOR".equals(rol)) {
+            String codigo = codigoAdminField.getText();
+            String esperado = configuracionDAO.obtenerValor("codigo_admin");
+            if (codigo == null || !codigo.equals(esperado)) {
+                errorLabel.setText("Codigo de administrador incorrecto");
+                marcarError(codigoAdminField);
+                return;
+            }
+        }
+
+        boolean esPaciente = "PACIENTE".equals(rol);
+        boolean esMedico = "MEDICO".equals(rol);
+
+        medicoExtraPanel.setVisible(esMedico);
+        medicoExtraPanel.setManaged(esMedico);
+
+        step1.setVisible(false);
+        step1.setManaged(false);
+        separatorStep.setVisible(true);
+        separatorStep.setManaged(true);
+        step2.setVisible(true);
+        step2.setManaged(true);
+    }
+
+    @FXML
+    private void handleAtras() {
+        step2.setVisible(false);
+        step2.setManaged(false);
+        separatorStep.setVisible(false);
+        separatorStep.setManaged(false);
+        step1.setVisible(true);
+        step1.setManaged(true);
+        errorLabel.setText("");
+        successLabel.setText("");
+    }
+
+    @FXML
     private void handleRegistrar() {
         errorLabel.setText("");
         successLabel.setText("");
@@ -138,83 +171,42 @@ public class RegistroController {
         String confirmarTelefono = confirmarTelefonoField.getText() == null ? "" : confirmarTelefonoField.getText().trim();
         String rolSeleccionado = rolComboBox.getValue();
 
-        if (nombre.isEmpty()) {
-            errorLabel.setText("El nombre es obligatorio");
-            marcarError(nombreField);
-            return;
-        }
-        if (apellido.isEmpty()) {
-            errorLabel.setText("El apellido es obligatorio");
-            marcarError(apellidoField);
-            return;
-        }
-        if (password == null || password.isBlank()) {
-            errorLabel.setText("La contrasena es obligatoria");
-            marcarError(passwordField);
-            return;
-        }
-        if (rolSeleccionado == null) {
-            errorLabel.setText("Selecciona un tipo de usuario");
-            return;
-        }
+        if (nombre.isEmpty()) { errorLabel.setText("El nombre es obligatorio"); marcarError(nombreField); return; }
+        if (apellido.isEmpty()) { errorLabel.setText("El apellido es obligatorio"); marcarError(apellidoField); return; }
+        if (password == null || password.isBlank()) { errorLabel.setText("La contrasena es obligatoria"); marcarError(passwordField); return; }
+        if (rolSeleccionado == null) { errorLabel.setText("Selecciona un tipo de usuario"); return; }
 
         String errorEmail = ValidacionService.mensajeErrorEmail(email);
-        if (errorEmail != null) {
-            errorLabel.setText(errorEmail);
-            marcarError(emailField);
-            return;
-        }
-        if (usuarioDAO.existeEmail(email)) {
-            errorLabel.setText("El email ya esta registrado. Usa otro email.");
-            marcarError(emailField);
+        if (errorEmail != null) { errorLabel.setText(errorEmail); marcarError(emailField); return; }
+        if (usuarioDAO.existeEmail(email)) { errorLabel.setText("El email ya esta registrado"); marcarError(emailField); return; }
+
+        String errorTel = ValidacionService.mensajeErrorTelefono(telefono);
+        if (errorTel != null) { errorLabel.setText(errorTel); marcarError(telefonoField); return; }
+
+        String errorConf = ValidacionService.mensajeErrorConfirmarTelefono(telefono, confirmarTelefono);
+        if (errorConf != null) { errorLabel.setText(errorConf); marcarError(confirmarTelefonoField); return; }
+
+        String tipoDoc = tipoDocCombo.getValue();
+        String numDoc = numeroDocField.getText() == null ? "" : numeroDocField.getText().trim();
+        if (numDoc.isEmpty()) { errorLabel.setText("El numero de documento es obligatorio"); marcarError(numeroDocField); return; }
+
+        LocalDate fechaNac = fechaNacField.getValue();
+        if ("PACIENTE".equals(rolSeleccionado) && fechaNac == null) {
+            errorLabel.setText("La fecha de nacimiento es obligatoria para pacientes");
             return;
         }
 
-        String errorTelefono = ValidacionService.mensajeErrorTelefono(telefono);
-        if (errorTelefono != null) {
-            errorLabel.setText(errorTelefono);
-            marcarError(telefonoField);
-            return;
-        }
-
-        String errorConfirmar = ValidacionService.mensajeErrorConfirmarTelefono(telefono, confirmarTelefono);
-        if (errorConfirmar != null) {
-            errorLabel.setText(errorConfirmar);
-            marcarError(confirmarTelefonoField);
-            return;
-        }
-
-        if ("ADMINISTRADOR".equals(rolSeleccionado)) {
-            if (codigoAdminField.getText() == null || !codigoAdminField.getText().equals(CODIGO_ADMIN_SECRETO)) {
-                errorLabel.setText("Codigo de administrador incorrecto");
-                marcarError(codigoAdminField);
-                return;
-            }
-        }
+        String direccion = direccionField.getText() == null ? "" : direccionField.getText().trim();
+        String eps = epsField.getText() == null ? "" : epsField.getText().trim();
 
         try {
             String id = generarIdUnico();
 
             if ("PACIENTE".equals(rolSeleccionado)) {
-                String tipoDoc = tipoDocCombo.getValue();
-                String numDoc = numeroDocField.getText() == null ? "" : numeroDocField.getText().trim();
-                LocalDate fechaNac = fechaNacField.getValue();
-                String direccion = direccionField.getText() == null ? "" : direccionField.getText().trim();
-                String eps = epsField.getText() == null ? "" : epsField.getText().trim();
-
-                if (numDoc.isEmpty()) {
-                    errorLabel.setText("El numero de documento es obligatorio");
-                    marcarError(numeroDocField);
-                    return;
-                }
-                if (fechaNac == null) {
-                    errorLabel.setText("La fecha de nacimiento es obligatoria");
-                    return;
-                }
-
                 Paciente paciente = new Paciente(
                         id, nombre, apellido, email, password, telefono,
-                        tipoDoc != null ? tipoDoc : "CC", numDoc, fechaNac,
+                        tipoDoc != null ? tipoDoc : "CC", numDoc,
+                        fechaNac != null ? fechaNac : LocalDate.of(2000, 1, 1),
                         direccion.isEmpty() ? "No especificada" : direccion,
                         eps.isEmpty() ? "No especificada" : eps
                 );
@@ -223,31 +215,38 @@ public class RegistroController {
             } else if ("MEDICO".equals(rolSeleccionado)) {
                 String registro = registroMedicoField.getText() == null ? "" : registroMedicoField.getText().trim();
                 String espNombre = especialidadCombo.getValue();
-                String consultorio = consultorioField.getText() == null ? "" : consultorioField.getText().trim();
 
                 Especialidad esp = Especialidad.MEDICINA_GENERAL;
                 if (espNombre != null) {
-                    esp = Especialidad.valueOf(espNombre.toUpperCase().replace(' ', '_'));
+                    esp = Especialidad.fromNombre(espNombre);
                 }
 
                 Medico medico = new Medico(
                         id, nombre, apellido, email, password, telefono,
                         registro.isEmpty() ? "REG-" + id : registro,
                         esp,
-                        consultorio.isEmpty() ? "Consultorio no asignado" : consultorio
+                        tipoDoc != null ? tipoDoc : "CC", numDoc,
+                        fechaNac,
+                        direccion.isEmpty() ? "No especificada" : direccion,
+                        eps.isEmpty() ? "No especificada" : eps
                 );
                 medicoDAO.guardar(medico);
 
             } else if ("ADMINISTRADOR".equals(rolSeleccionado)) {
-                Administrador administrador = new Administrador(
+                Administrador admin = new Administrador(
                         id, nombre, apellido, email, password, telefono,
-                        "ADM-" + id.substring(id.length() - 3), "Registro general"
+                        "ADM-" + id.substring(id.length() - 3), "Registro general",
+                        tipoDoc != null ? tipoDoc : "CC", numDoc,
+                        fechaNac,
+                        direccion.isEmpty() ? "No especificada" : direccion,
+                        eps.isEmpty() ? "No especificada" : eps
                 );
-                administradorDAO.guardar(administrador);
+                administradorDAO.guardar(admin);
             }
 
             successLabel.setText("Registro exitoso! Ahora puedes iniciar sesion.");
             limpiarCampos();
+            handleAtras();
 
         } catch (Exception exception) {
             errorLabel.setText("Error al registrar: " + exception.getMessage());
@@ -273,14 +272,14 @@ public class RegistroController {
         direccionField.setText("");
         epsField.setText("");
         registroMedicoField.setText("");
-        consultorioField.setText("");
+        especialidadCombo.setValue(null);
         limpiarEstilos();
     }
 
     private void limpiarEstilos() {
         for (var campo : List.of(nombreField, apellidoField, emailField, passwordField,
                 passwordVisibleField, telefonoField, confirmarTelefonoField, codigoAdminField,
-                numeroDocField, direccionField, epsField, registroMedicoField, consultorioField)) {
+                numeroDocField, direccionField, epsField, registroMedicoField)) {
             limpiarEstiloCampo(campo);
         }
     }
@@ -305,45 +304,24 @@ public class RegistroController {
 
     private void validarEmailCampo() {
         String email = emailField.getText().trim().toLowerCase();
-        if (email.isBlank()) {
-            limpiarEstiloCampo(emailField);
-            return;
-        }
+        if (email.isBlank()) { limpiarEstiloCampo(emailField); return; }
         String error = ValidacionService.mensajeErrorEmail(email);
-        if (error != null) {
-            marcarError(emailField);
-        } else {
-            marcarValido(emailField);
-        }
+        if (error != null) marcarError(emailField); else marcarValido(emailField);
     }
 
     private void validarTelefonoCampo() {
         String tel = telefonoField.getText().trim();
-        if (tel.isBlank()) {
-            limpiarEstiloCampo(telefonoField);
-            return;
-        }
+        if (tel.isBlank()) { limpiarEstiloCampo(telefonoField); return; }
         String error = ValidacionService.mensajeErrorTelefono(tel);
-        if (error != null) {
-            marcarError(telefonoField);
-        } else {
-            marcarValido(telefonoField);
-        }
+        if (error != null) marcarError(telefonoField); else marcarValido(telefonoField);
     }
 
     private void validarConfirmarTelefonoCampo() {
         String tel = telefonoField.getText().trim();
         String conf = confirmarTelefonoField.getText().trim();
-        if (conf.isBlank()) {
-            limpiarEstiloCampo(confirmarTelefonoField);
-            return;
-        }
+        if (conf.isBlank()) { limpiarEstiloCampo(confirmarTelefonoField); return; }
         String error = ValidacionService.mensajeErrorConfirmarTelefono(tel, conf);
-        if (error != null) {
-            marcarError(confirmarTelefonoField);
-        } else {
-            marcarValido(confirmarTelefonoField);
-        }
+        if (error != null) marcarError(confirmarTelefonoField); else marcarValido(confirmarTelefonoField);
     }
 
     private String generarIdUnico() {

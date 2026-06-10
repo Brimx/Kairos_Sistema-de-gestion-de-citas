@@ -41,6 +41,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
@@ -77,7 +78,7 @@ public class DashboardPacienteController {
     @FXML private DatePicker dateFecha;
     @FXML private ComboBox<String> cbHora;
     @FXML private ComboBox<String> cbTipo;
-    @FXML private TextField txtMotivo;
+    @FXML private TextArea txtMotivo;
 
     @FXML private Label lblMensaje;
     @FXML private VBox calendarContainer;
@@ -231,6 +232,7 @@ public class DashboardPacienteController {
         calendarView.getCalendarSources().setAll(calendarSource);
 
         calendarView.setRequestedTime(LocalTime.now());
+        // calendarView.setShowSourceButton(false); // not in this CalendarFX version
 
         Thread timeThread = new Thread(() -> {
             while (true) {
@@ -452,6 +454,21 @@ public class DashboardPacienteController {
     }
 
     @FXML
+    private void handleExpandirMotivo() {
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle("Motivo de consulta");
+        dialog.setHeaderText("Descripcion completa");
+        TextArea area = new TextArea(txtMotivo.getText());
+        area.setWrapText(true);
+        area.setPrefRowCount(8);
+        ButtonType btnOk = new ButtonType("Cerrar", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().add(btnOk);
+        ViewManager.styleDialog(dialog);
+        dialog.getDialogPane().setContent(area);
+        dialog.showAndWait().ifPresent(r -> txtMotivo.setText(area.getText()));
+    }
+
+    @FXML
     private void handleCancelarCita() {
         Cita sel = tablaCitas.getSelectionModel().getSelectedItem();
         if (sel == null) {
@@ -465,6 +482,7 @@ public class DashboardPacienteController {
         Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION,
                 "Cancelar la cita con " + sel.getMedico().getNombre() + " del " + sel.getFecha() + "?",
                 ButtonType.YES, ButtonType.NO);
+        ViewManager.styleAlert(dialogo);
         dialogo.showAndWait().ifPresent(boton -> {
             if (boton == ButtonType.YES) {
                 try {
@@ -488,6 +506,7 @@ public class DashboardPacienteController {
 
         ButtonType btnGuardar = new ButtonType("Guardar cambios", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, ButtonType.CANCEL);
+        ViewManager.styleDialog(dialog);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);

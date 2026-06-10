@@ -82,7 +82,7 @@ public class DashboardAdminController {
     @FXML private TableColumn<Medico, String> colMedEsp;
     @FXML private TableColumn<Medico, String> colMedRegistro;
     @FXML private TableColumn<Medico, String> colMedTel;
-    @FXML private TableColumn<Medico, String> colMedCons;
+    @FXML private TableColumn<Medico, String> colMedTipoDoc;
 
     @FXML private TableView<Cita> tablaCitas;
     @FXML private TableColumn<Cita, String> colCitaPac;
@@ -132,7 +132,7 @@ public class DashboardAdminController {
         colMedEsp.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getEspecialidad().getNombre()));
         colMedRegistro.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getRegistroMedico()));
         colMedTel.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTelefono()));
-        colMedCons.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getConsultorio()));
+        colMedTipoDoc.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getTipoDocumento()));
 
         colCitaPac.setCellValueFactory(d -> new SimpleStringProperty(
                 d.getValue().getPaciente().getNombre() + " " + d.getValue().getPaciente().getApellido()));
@@ -161,7 +161,7 @@ public class DashboardAdminController {
         searchMedicos.textProperty().addListener((obs, old, val) -> {
             if (filteredMedicos != null) {
                 filteredMedicos.setPredicate(m -> val == null || val.isBlank()
-                        || (m.getNombre() + " " + m.getApellido() + " " + m.getEmail() + " " + m.getEspecialidad().getNombre() + " " + m.getRegistroMedico() + " " + m.getConsultorio())
+                        || (m.getNombre() + " " + m.getApellido() + " " + m.getEmail() + " " + m.getEspecialidad().getNombre() + " " + m.getRegistroMedico() + " " + m.getTipoDocumento())
                                 .toLowerCase().contains(val.toLowerCase()));
             }
         });
@@ -189,7 +189,7 @@ public class DashboardAdminController {
     private void conectarTooltips() {
         for (TableColumn col : new TableColumn[]{
                 colPacNombre, colPacEmail, colPacTipoDoc, colPacDoc, colPacTel, colPacEps,
-                colMedNombre, colMedEmail, colMedEsp, colMedRegistro, colMedTel, colMedCons,
+                colMedNombre, colMedEmail, colMedEsp, colMedRegistro, colMedTel, colMedTipoDoc,
                 colCitaPac, colCitaMed, colCitaServicio, colCitaFecha, colCitaHora, colCitaTipo, colCitaEstado, colCitaMotivo
         }) {
             col.setCellFactory(tc -> new TableCell() {
@@ -286,6 +286,7 @@ public class DashboardAdminController {
 
         ButtonType btnGuardar = new ButtonType("Guardar cambios", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, ButtonType.CANCEL);
+        ViewManager.styleDialog(dialog);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -351,6 +352,7 @@ public class DashboardAdminController {
         Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION,
                 "Desactivar a " + sel.getNombre() + " " + sel.getApellido() + "?",
                 ButtonType.YES, ButtonType.NO);
+        ViewManager.styleAlert(dialogo);
         dialogo.showAndWait().ifPresent(boton -> {
             if (boton == ButtonType.YES) {
                 try {
@@ -372,6 +374,7 @@ public class DashboardAdminController {
 
         ButtonType btnGuardar = new ButtonType("Guardar", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, ButtonType.CANCEL);
+        ViewManager.styleDialog(dialog);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -441,6 +444,7 @@ public class DashboardAdminController {
 
         ButtonType btnGuardar = new ButtonType("Guardar cambios", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, ButtonType.CANCEL);
+        ViewManager.styleDialog(dialog);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -456,11 +460,16 @@ public class DashboardAdminController {
                 java.util.Arrays.stream(Especialidad.values()).map(Especialidad::getNombre).toList()
         ));
         especialidad.setValue(sel.getEspecialidad().getNombre());
-        TextField consultorio = new TextField(sel.getConsultorio());
+        TextField tipoDoc = new TextField(sel.getTipoDocumento());
+        TextField numDoc = new TextField(sel.getNumeroDocumento());
+        DatePicker fechaNac = new DatePicker(sel.getFechaNacimiento());
+        TextField direccion = new TextField(sel.getDireccion());
+        TextField eps = new TextField(sel.getEps());
 
         grid.addRow(0, new Label("Nombre:"), nombre, new Label("Apellido:"), apellido);
         grid.addRow(1, new Label("Telefono:"), telefono, new Label("Registro:"), registro);
-        grid.addRow(2, new Label("Especialidad:"), especialidad, new Label("Consultorio:"), consultorio);
+        grid.addRow(2, new Label("Especialidad:"), especialidad, new Label("Tipo doc:"), tipoDoc, new Label("Num doc:"), numDoc);
+        grid.addRow(3, new Label("Fecha nac:"), fechaNac, new Label("Direccion:"), direccion, new Label("EPS:"), eps);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -477,7 +486,8 @@ public class DashboardAdminController {
                             sel.getEmail(), sel.getPassword(),
                             telefono.getText().trim(),
                             registro.getText().trim(), esp,
-                            consultorio.getText().trim()
+                            tipoDoc.getText().trim(), numDoc.getText().trim(),
+                            fechaNac.getValue(), direccion.getText().trim(), eps.getText().trim()
                     );
                 } catch (Exception e) {
                     mostrarError(lblMensajeMedicos, "Datos invalidos: " + e.getMessage());
@@ -510,6 +520,7 @@ public class DashboardAdminController {
                 "Eliminar a " + sel.getNombre() + " " + sel.getApellido()
                 + " (" + sel.getEspecialidad().getNombre() + ")?",
                 ButtonType.YES, ButtonType.NO);
+        ViewManager.styleAlert(dialogo);
         dialogo.showAndWait().ifPresent(boton -> {
             if (boton == ButtonType.YES) {
                 try {
@@ -538,6 +549,7 @@ public class DashboardAdminController {
 
         ButtonType btnGuardar = new ButtonType("Guardar cambios", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, ButtonType.CANCEL);
+        ViewManager.styleDialog(dialog);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -718,6 +730,7 @@ public class DashboardAdminController {
                 "Confirmar cita de " + sel.getPaciente().getNombre() + " con "
                 + sel.getMedico().getNombre() + "?",
                 ButtonType.YES, ButtonType.NO);
+        ViewManager.styleAlert(dialogo);
         dialogo.showAndWait().ifPresent(boton -> {
             if (boton == ButtonType.YES) {
                 try {
@@ -742,6 +755,7 @@ public class DashboardAdminController {
                 "Cancelar cita de " + sel.getPaciente().getNombre() + " con "
                 + sel.getMedico().getNombre() + "?",
                 ButtonType.YES, ButtonType.NO);
+        ViewManager.styleAlert(dialogo);
         dialogo.showAndWait().ifPresent(boton -> {
             if (boton == ButtonType.YES) {
                 try {
@@ -765,6 +779,7 @@ public class DashboardAdminController {
         Alert dialogo = new Alert(Alert.AlertType.CONFIRMATION,
                 "Marcar como inasistencia la cita de " + sel.getPaciente().getNombre() + "?",
                 ButtonType.YES, ButtonType.NO);
+        ViewManager.styleAlert(dialogo);
         dialogo.showAndWait().ifPresent(boton -> {
             if (boton == ButtonType.YES) {
                 try {
@@ -786,6 +801,7 @@ public class DashboardAdminController {
 
         ButtonType btnAgendar = new ButtonType("Agendar", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnAgendar, ButtonType.CANCEL);
+        ViewManager.styleDialog(dialog);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -1037,6 +1053,7 @@ public class DashboardAdminController {
 
         ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
         dialog.getDialogPane().getButtonTypes().add(btnCerrar);
+        ViewManager.styleDialog(dialog);
 
         VBox content = new VBox(12);
         content.setPadding(new Insets(16));
@@ -1103,7 +1120,7 @@ public class DashboardAdminController {
 
         Separator sep = new Separator();
         Label lblBloqueosExistentes = new Label("Bloqueos existentes:");
-        lblBloqueosExistentes.setStyle("-fx-font-weight: bold;");
+        lblBloqueosExistentes.getStyleClass().add("field-label");
 
         ListView<String> listaBloqueos = new ListView<>();
         listaBloqueos.setPrefHeight(120);
@@ -1179,6 +1196,7 @@ public class DashboardAdminController {
                     Alert alert = new Alert(Alert.AlertType.WARNING, sb.toString(), ButtonType.OK);
                     alert.setTitle("Citas por Reubicar");
                     alert.setHeaderText(afectadas.size() + " cita(s) afectada(s)");
+                    ViewManager.styleAlert(alert);
                     alert.show();
                 } else {
                     mostrarExito(lblMensajeCitas, "Bloqueo agregado.");
@@ -1243,6 +1261,7 @@ public class DashboardAdminController {
 
         ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
         dialog.getDialogPane().getButtonTypes().add(btnCerrar);
+        ViewManager.styleDialog(dialog);
 
         VBox content = new VBox(12);
         content.setPadding(new Insets(16));
@@ -1383,6 +1402,7 @@ public class DashboardAdminController {
 
     private boolean confirmar(String mensaje) {
         Alert a = new Alert(Alert.AlertType.CONFIRMATION, mensaje, ButtonType.YES, ButtonType.NO);
+        ViewManager.styleAlert(a);
         return a.showAndWait().orElse(ButtonType.NO) == ButtonType.YES;
     }
 

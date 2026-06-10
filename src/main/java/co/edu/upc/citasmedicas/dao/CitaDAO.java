@@ -285,7 +285,9 @@ public class CitaDAO {
                        p.tipo_documento, p.numero_documento, p.fecha_nacimiento, p.direccion, p.eps,
                        mu.id AS medico_id, mu.nombre AS medico_nombre, mu.apellido AS medico_apellido,
                        mu.email AS medico_email, mu.password AS medico_password, mu.telefono AS medico_telefono,
-                       m.registro_medico, m.especialidad AS medico_especialidad, m.consultorio
+                       m.registro_medico, m.especialidad AS medico_especialidad,
+                       m.tipo_documento AS medico_tipo_doc, m.numero_documento AS medico_num_doc,
+                       m.fecha_nacimiento AS medico_fecha_nac, m.direccion AS medico_dir, m.eps AS medico_eps
                 FROM citas c
                 JOIN pacientes p ON p.usuario_id = c.paciente_id
                 JOIN usuarios pu ON pu.id = p.usuario_id
@@ -309,6 +311,7 @@ public class CitaDAO {
                 resultSet.getString("eps")
         );
 
+        String fnMed = resultSet.getString("medico_fecha_nac");
         Medico medico = new Medico(
                 resultSet.getString("medico_id"),
                 resultSet.getString("medico_nombre"),
@@ -318,7 +321,11 @@ public class CitaDAO {
                 resultSet.getString("medico_telefono"),
                 resultSet.getString("registro_medico"),
                 Especialidad.valueOf(resultSet.getString("medico_especialidad")),
-                resultSet.getString("consultorio")
+                resultSet.getString("medico_tipo_doc"),
+                resultSet.getString("medico_num_doc"),
+                fnMed != null ? LocalDate.parse(fnMed) : null,
+                resultSet.getString("medico_dir"),
+                resultSet.getString("medico_eps")
         );
 
         String origen = resultSet.getString("origen");

@@ -66,16 +66,33 @@ public class DatabaseConnection {
                     registro_medico TEXT NOT NULL,
                     especialidad TEXT NOT NULL,
                     consultorio TEXT NOT NULL,
+                    tipo_documento TEXT DEFAULT 'CC',
+                    numero_documento TEXT DEFAULT '',
+                    fecha_nacimiento TEXT,
+                    direccion TEXT DEFAULT '',
+                    eps TEXT DEFAULT '',
                     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
                 )
                 """);
-
+ 
         statement.execute("""
                 CREATE TABLE IF NOT EXISTS administradores (
                     usuario_id TEXT PRIMARY KEY,
                     codigo_admin TEXT NOT NULL,
                     cargo TEXT NOT NULL,
+                    tipo_documento TEXT DEFAULT 'CC',
+                    numero_documento TEXT DEFAULT '',
+                    fecha_nacimiento TEXT,
+                    direccion TEXT DEFAULT '',
+                    eps TEXT DEFAULT '',
                     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+                )
+                """);
+
+        statement.execute("""
+                CREATE TABLE IF NOT EXISTS configuracion (
+                    clave TEXT PRIMARY KEY,
+                    valor TEXT NOT NULL
                 )
                 """);
 
@@ -117,6 +134,38 @@ public class DatabaseConnection {
             statement.execute("ALTER TABLE citas ADD COLUMN sobrecupo INTEGER NOT NULL DEFAULT 0");
         } catch (Exception ignored) {
         }
+
+        try {
+            statement.execute("ALTER TABLE administradores ADD COLUMN tipo_documento TEXT DEFAULT 'CC'");
+        } catch (Exception ignored) { }
+        try {
+            statement.execute("ALTER TABLE administradores ADD COLUMN numero_documento TEXT DEFAULT ''");
+        } catch (Exception ignored) { }
+        try {
+            statement.execute("ALTER TABLE administradores ADD COLUMN fecha_nacimiento TEXT");
+        } catch (Exception ignored) { }
+        try {
+            statement.execute("ALTER TABLE administradores ADD COLUMN direccion TEXT DEFAULT ''");
+        } catch (Exception ignored) { }
+        try {
+            statement.execute("ALTER TABLE administradores ADD COLUMN eps TEXT DEFAULT ''");
+        } catch (Exception ignored) { }
+
+        try {
+            statement.execute("ALTER TABLE medicos ADD COLUMN tipo_documento TEXT DEFAULT 'CC'");
+        } catch (Exception ignored) { }
+        try {
+            statement.execute("ALTER TABLE medicos ADD COLUMN numero_documento TEXT DEFAULT ''");
+        } catch (Exception ignored) { }
+        try {
+            statement.execute("ALTER TABLE medicos ADD COLUMN fecha_nacimiento TEXT");
+        } catch (Exception ignored) { }
+        try {
+            statement.execute("ALTER TABLE medicos ADD COLUMN direccion TEXT DEFAULT ''");
+        } catch (Exception ignored) { }
+        try {
+            statement.execute("ALTER TABLE medicos ADD COLUMN eps TEXT DEFAULT ''");
+        } catch (Exception ignored) { }
 
         statement.execute("""
                 CREATE TABLE IF NOT EXISTS agenda_medica (
@@ -210,35 +259,40 @@ public class DatabaseConnection {
 
         ejecutarInsert(connection, """
                 INSERT OR IGNORE INTO medicos
-                (usuario_id, registro_medico, especialidad, consultorio)
-                VALUES (?, ?, ?, ?)
-                """, "med-001", "RM-7788", "MEDICINA_GENERAL", "Consultorio 203");
+                (usuario_id, registro_medico, especialidad, consultorio, tipo_documento, numero_documento, direccion, eps)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, "med-001", "RM-7788", "MEDICINA_GENERAL", "Consultorio 203", "CC", "101500600", "Cra 20 #15-40", "Coomeva");
         ejecutarInsert(connection, """
                 INSERT OR IGNORE INTO medicos
-                (usuario_id, registro_medico, especialidad, consultorio)
-                VALUES (?, ?, ?, ?)
-                """, "med-002", "RM-9900", "ODONTOLOGIA", "Consultorio 205");
+                (usuario_id, registro_medico, especialidad, consultorio, tipo_documento, numero_documento, direccion, eps)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, "med-002", "RM-9900", "ODONTOLOGIA", "Consultorio 205", "CC", "102700800", "Av 5 #20-10", "Sura");
         ejecutarInsert(connection, """
                 INSERT OR IGNORE INTO medicos
-                (usuario_id, registro_medico, especialidad, consultorio)
-                VALUES (?, ?, ?, ?)
-                """, "med-003", "RM-1122", "PEDIATRIA", "Consultorio 110");
+                (usuario_id, registro_medico, especialidad, consultorio, tipo_documento, numero_documento, direccion, eps)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, "med-003", "RM-1122", "PEDIATRIA", "Consultorio 110", "CC", "103900100", "Calle 8 #12-50", "Sanitas");
         ejecutarInsert(connection, """
                 INSERT OR IGNORE INTO medicos
-                (usuario_id, registro_medico, especialidad, consultorio)
-                VALUES (?, ?, ?, ?)
-                """, "med-004", "RM-3344", "DERMATOLOGIA", "Consultorio 302");
+                (usuario_id, registro_medico, especialidad, consultorio, tipo_documento, numero_documento, direccion, eps)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, "med-004", "RM-3344", "DERMATOLOGIA", "Consultorio 302", "CC", "104200300", "Cra 15 #30-25", "Medimas");
         ejecutarInsert(connection, """
                 INSERT OR IGNORE INTO medicos
-                (usuario_id, registro_medico, especialidad, consultorio)
-                VALUES (?, ?, ?, ?)
-                """, "med-005", "RM-5566", "PSICOLOGIA", "Consultorio 401");
+                (usuario_id, registro_medico, especialidad, consultorio, tipo_documento, numero_documento, direccion, eps)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, "med-005", "RM-5566", "PSICOLOGIA", "Consultorio 401", "CE", "PZ-789012", "Av 10 #25-60", "Compensar");
+
+        ejecutarInsert(connection, """
+                INSERT OR IGNORE INTO configuracion (clave, valor)
+                VALUES (?, ?)
+                """, "codigo_admin", "ADM-K4IR0S");
 
         ejecutarInsert(connection, """
                 INSERT OR IGNORE INTO administradores
-                (usuario_id, codigo_admin, cargo)
-                VALUES (?, ?, ?)
-                """, "adm-001", "ADM-001", "Coordinadora de agenda");
+                (usuario_id, codigo_admin, cargo, tipo_documento, numero_documento, direccion, eps)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, "adm-001", "ADM-001", "Coordinadora de agenda", "CC", "100300500", "Calle 50 #10-30", "Sura");
 
         ejecutarInsert(connection, """
                 INSERT OR IGNORE INTO citas

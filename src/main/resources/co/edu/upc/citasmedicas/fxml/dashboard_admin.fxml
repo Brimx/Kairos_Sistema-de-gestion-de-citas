@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
@@ -11,6 +13,9 @@
     <top>
         <HBox styleClass="header-bar">
             <padding><Insets top="14" right="20" bottom="14" left="20"/></padding>
+            <ImageView fitHeight="28" fitWidth="28" preserveRatio="true">
+                <Image url="@../img/icon.png"/>
+            </ImageView>
             <Label fx:id="lblBienvenida" styleClass="header-title"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Label fx:id="lblContador" styleClass="header-subtitle"/>
@@ -70,7 +75,7 @@
                             <TableColumn fx:id="colMedEsp"    text="Especialidad" prefWidth="140"/>
                             <TableColumn fx:id="colMedRegistro" text="Registro"  prefWidth="100"/>
                             <TableColumn fx:id="colMedTel"    text="Telefono"     prefWidth="110"/>
-                            <TableColumn fx:id="colMedCons"   text="Consultorio"  prefWidth="110"/>
+                            <TableColumn fx:id="colMedTipoDoc"   text="Tipo Doc"  prefWidth="110"/>
                         </columns>
                     </TableView>
                     <HBox spacing="10" alignment="CENTER_LEFT">

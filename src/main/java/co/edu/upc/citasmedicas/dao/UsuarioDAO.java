@@ -98,8 +98,9 @@ public class UsuarioDAO {
                 """;
 
         String sqlMedico = """
-                INSERT INTO medicos (usuario_id, registro_medico, especialidad, consultorio)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO medicos (usuario_id, registro_medico, especialidad, consultorio,
+                    tipo_documento, numero_documento, fecha_nacimiento, direccion, eps)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection connection = DatabaseConnection.getConnection();
@@ -108,7 +109,6 @@ public class UsuarioDAO {
 
             connection.setAutoCommit(false);
 
-            // Guardar en tabla usuarios
             stmtUsuario.setString(1, medico.getId());
             stmtUsuario.setString(2, medico.getNombre());
             stmtUsuario.setString(3, medico.getApellido());
@@ -117,16 +117,20 @@ public class UsuarioDAO {
             stmtUsuario.setString(6, medico.getTelefono());
             stmtUsuario.executeUpdate();
 
-            // Guardar en tabla medicos
             stmtMedico.setString(1, medico.getId());
             stmtMedico.setString(2, medico.getRegistroMedico());
             stmtMedico.setString(3, medico.getEspecialidad().name());
-            stmtMedico.setString(4, medico.getConsultorio());
+            stmtMedico.setString(4, "");
+            stmtMedico.setString(5, medico.getTipoDocumento());
+            stmtMedico.setString(6, medico.getNumeroDocumento());
+            stmtMedico.setString(7, medico.getFechaNacimiento() != null ? medico.getFechaNacimiento().toString() : null);
+            stmtMedico.setString(8, medico.getDireccion());
+            stmtMedico.setString(9, medico.getEps());
             stmtMedico.executeUpdate();
 
             connection.commit();
         } catch (SQLException exception) {
-            throw new IllegalStateException("No se pudo guardar el médico", exception);
+            throw new IllegalStateException("No se pudo guardar el medico", exception);
         }
     }
 
@@ -141,8 +145,9 @@ public class UsuarioDAO {
                 """;
 
         String sqlAdministrador = """
-                INSERT INTO administradores (usuario_id, codigo_admin, cargo)
-                VALUES (?, ?, ?)
+                INSERT INTO administradores (usuario_id, codigo_admin, cargo,
+                    tipo_documento, numero_documento, fecha_nacimiento, direccion, eps)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection connection = DatabaseConnection.getConnection();
@@ -151,7 +156,6 @@ public class UsuarioDAO {
 
             connection.setAutoCommit(false);
 
-            // Guardar en tabla usuarios
             stmtUsuario.setString(1, administrador.getId());
             stmtUsuario.setString(2, administrador.getNombre());
             stmtUsuario.setString(3, administrador.getApellido());
@@ -160,10 +164,14 @@ public class UsuarioDAO {
             stmtUsuario.setString(6, administrador.getTelefono());
             stmtUsuario.executeUpdate();
 
-            // Guardar en tabla administradores
             stmtAdministrador.setString(1, administrador.getId());
             stmtAdministrador.setString(2, administrador.getCodigoAdmin());
             stmtAdministrador.setString(3, administrador.getCargo());
+            stmtAdministrador.setString(4, administrador.getTipoDocumento());
+            stmtAdministrador.setString(5, administrador.getNumeroDocumento());
+            stmtAdministrador.setString(6, administrador.getFechaNacimiento() != null ? administrador.getFechaNacimiento().toString() : null);
+            stmtAdministrador.setString(7, administrador.getDireccion());
+            stmtAdministrador.setString(8, administrador.getEps());
             stmtAdministrador.executeUpdate();
 
             connection.commit();
@@ -174,9 +182,15 @@ public class UsuarioDAO {
 
     public Usuario autenticar(String email, String password) {
         String sql = """
-                SELECT u.*, p.tipo_documento, p.numero_documento, p.fecha_nacimiento, p.direccion, p.eps,
-                       m.registro_medico, m.especialidad, m.consultorio,
-                       a.codigo_admin, a.cargo
+                SELECT u.*,
+                       p.tipo_documento AS p_tipo_doc, p.numero_documento AS p_num_doc,
+                       p.fecha_nacimiento AS p_fecha_nac, p.direccion AS p_dir, p.eps AS p_eps,
+                       m.registro_medico, m.especialidad,
+                       m.tipo_documento AS m_tipo_doc, m.numero_documento AS m_num_doc,
+                       m.fecha_nacimiento AS m_fecha_nac, m.direccion AS m_dir, m.eps AS m_eps,
+                       a.codigo_admin, a.cargo,
+                       a.tipo_documento AS a_tipo_doc, a.numero_documento AS a_num_doc,
+                       a.fecha_nacimiento AS a_fecha_nac, a.direccion AS a_dir, a.eps AS a_eps
                 FROM usuarios u
                 LEFT JOIN pacientes p ON p.usuario_id = u.id
                 LEFT JOIN medicos m ON m.usuario_id = u.id
@@ -213,13 +227,15 @@ public class UsuarioDAO {
                     resultSet.getString("email"),
                     resultSet.getString("password"),
                     resultSet.getString("telefono"),
-                    resultSet.getString("tipo_documento"),
-                    resultSet.getString("numero_documento"),
-                    LocalDate.parse(resultSet.getString("fecha_nacimiento")),
-                    resultSet.getString("direccion"),
-                    resultSet.getString("eps")
+                    resultSet.getString("p_tipo_doc"),
+                    resultSet.getString("p_num_doc"),
+                    LocalDate.parse(resultSet.getString("p_fecha_nac")),
+                    resultSet.getString("p_dir"),
+                    resultSet.getString("p_eps")
             );
-            case MEDICO -> new Medico(
+            case MEDICO -> {
+                String fnMed = resultSet.getString("m_fecha_nac");
+                yield new Medico(
                     resultSet.getString("id"),
                     resultSet.getString("nombre"),
                     resultSet.getString("apellido"),
@@ -228,9 +244,16 @@ public class UsuarioDAO {
                     resultSet.getString("telefono"),
                     resultSet.getString("registro_medico"),
                     Especialidad.valueOf(resultSet.getString("especialidad")),
-                    resultSet.getString("consultorio")
-            );
-            case ADMIN -> new Administrador(
+                    resultSet.getString("m_tipo_doc"),
+                    resultSet.getString("m_num_doc"),
+                    fnMed != null ? LocalDate.parse(fnMed) : null,
+                    resultSet.getString("m_dir"),
+                    resultSet.getString("m_eps")
+                );
+            }
+            case ADMIN -> {
+                String fnAdm = resultSet.getString("a_fecha_nac");
+                yield new Administrador(
                     resultSet.getString("id"),
                     resultSet.getString("nombre"),
                     resultSet.getString("apellido"),
@@ -238,8 +261,14 @@ public class UsuarioDAO {
                     resultSet.getString("password"),
                     resultSet.getString("telefono"),
                     resultSet.getString("codigo_admin"),
-                    resultSet.getString("cargo")
-            );
+                    resultSet.getString("cargo"),
+                    resultSet.getString("a_tipo_doc"),
+                    resultSet.getString("a_num_doc"),
+                    fnAdm != null ? LocalDate.parse(fnAdm) : null,
+                    resultSet.getString("a_dir"),
+                    resultSet.getString("a_eps")
+                );
+            }
         };
     }
 }

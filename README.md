@@ -38,7 +38,8 @@ El sistema gestiona el ciclo de vida completo de una cita médica: desde que el 
 | SQLite | — | Base de datos embebida |
 | Xerial SQLite JDBC | 3.45.2.0 | Conector Java ↔ SQLite |
 | CalendarFX | 11.12.7 | Componentes de calendario |
-| CSS (Material Design) | — | UI moderna sin librerías externas |
+| IBM Plex Sans | — | Tipografía principal del sistema |
+| CSS (Material Design / Indigo) | — | UI moderna con paleta índigo, sombras y elevaciones |
 | Maven | — | Gestión de dependencias y build |
 
 ---
@@ -97,7 +98,8 @@ co.edu.upc.citasmedicas/
 │   ├── CitaDAO.java
 │   ├── AgendaMedicaDAO.java      (horarios del médico)
 │   ├── BloqueoAgendaDAO.java     (bloqueos temporales)
-│   └── HistorialClinicoDAO.java  (historial por cita completada)
+│   ├── HistorialClinicoDAO.java  (historial por cita completada)
+│   └── ConfiguracionDAO.java     (clave/valor — código admin, etc.)
 │
 ├── enums/                     ← Constantes tipadas del dominio
 │   ├── Rol.java               (PACIENTE, MEDICO, ADMIN)
@@ -141,6 +143,18 @@ Usuario (abstracta)
 ```
 
 `Usuario` es una clase abstracta que obliga a cada rol a implementar `getMenuOpciones()`. Almacena datos comunes: id, nombre, apellido, email, password, teléfono, rol y estado activo.
+
+Además de los campos heredados, cada rol extiende con datos específicos:
+
+- **Paciente**: tipoDocumento, numeroDocumento, fechaNacimiento, direccion, eps
+- **Medico**: registroMedico, especialidad, tipoDocumento, numeroDocumento, fechaNacimiento, direccion, eps
+- **Administrador**: codigoAdmin, cargo, tipoDocumento, numeroDocumento, fechaNacimiento, direccion, eps
+
+El registro de nuevos usuarios usa un **asistente multi-paso** (`registro.fxml`) donde:
+1. **Paso 1**: se selecciona nombre, apellido y rol (con código de admin si aplica).
+2. **Paso 2**: se completan los datos específicos del rol (email, password, teléfono, documentos, fecha de nacimiento, dirección, EPS, y especialidad/registro si es médico).
+
+El código de administrador se valida contra la tabla `configuracion` en la base de datos (en lugar de un valor fijo en código), permitiendo cambiarlo desde el panel de administración.
 
 ### Entidades principales
 
@@ -191,15 +205,29 @@ CREATE TABLE medicos (
     usuario_id TEXT PRIMARY KEY,
     registro_medico TEXT NOT NULL,
     especialidad TEXT NOT NULL,
-    consultorio TEXT NOT NULL,
+    tipo_documento TEXT NOT NULL DEFAULT '',
+    numero_documento TEXT NOT NULL DEFAULT '',
+    fecha_nacimiento TEXT,
+    direccion TEXT DEFAULT '',
+    eps TEXT DEFAULT '',
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
 
 CREATE TABLE administradores (
     usuario_id TEXT PRIMARY KEY,
     codigo_admin TEXT NOT NULL,
-    cargo TEXT NOT NULL,
+    cargo TEXT NOT NULL DEFAULT '',
+    tipo_documento TEXT NOT NULL DEFAULT '',
+    numero_documento TEXT NOT NULL DEFAULT '',
+    fecha_nacimiento TEXT,
+    direccion TEXT DEFAULT '',
+    eps TEXT DEFAULT '',
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+);
+
+CREATE TABLE configuracion (
+    clave TEXT PRIMARY KEY,
+    valor TEXT NOT NULL
 );
 
 CREATE TABLE citas (
@@ -297,8 +325,9 @@ CREATE TABLE historial_clinico (
 ## Roles del sistema
 
 ### Paciente
-- Registrarse en el sistema
-- Solicitar cita médica (seleccionando médico, fecha, hora y tipo)
+- Registrarse en el sistema (asistente multi-paso con datos personales)
+- Solicitar cita médica (seleccionando médico, fecha, hora, tipo y motivo)
+- El motivo de consulta usa un **TextArea expandible** con mínimo 3 líneas, scroll automático y botón para vista completa en diálogo modal
 - Ver mis citas activas
 - Cancelar una cita (excepto si ya fue completada)
 
