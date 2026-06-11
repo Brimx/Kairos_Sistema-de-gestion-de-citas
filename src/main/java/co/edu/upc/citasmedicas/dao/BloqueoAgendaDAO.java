@@ -62,6 +62,30 @@ public class BloqueoAgendaDAO {
         return list;
     }
 
+    public List<BloqueoAgenda> obtenerTodos() {
+        String sql = """
+                SELECT id, medico_id, fecha, hora_inicio, hora_fin, motivo
+                FROM bloqueos_agenda
+                ORDER BY fecha, hora_inicio
+                """;
+
+        List<BloqueoAgenda> list = new ArrayList<>();
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    list.add(mapearBloqueo(resultSet));
+                }
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("No se pudieron cargar los bloqueos", exception);
+        }
+
+        return list;
+    }
+
     public void eliminar(String id) {
         String sql = "DELETE FROM bloqueos_agenda WHERE id = ?";
 

@@ -177,8 +177,6 @@ public class CitaService {
 
             while (!cursor.isAfter(limite.minusMinutes(duracion))) {
                 if (!tieneSolapamiento(cursor, duracion, ocupadas, bloqueos)) {
-                    long diferencia = Math.abs(
-                            cursor.toSecondOfDay() - cita.getHoraInicio().toSecondOfDay());
                     candidatos.add(new SlotReasignado(medico, cita.getFecha(), cursor));
                 }
                 cursor = cursor.plusMinutes(slotSize);

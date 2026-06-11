@@ -63,6 +63,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -341,6 +342,72 @@ public class DashboardMedicoController {
     }
 
     @FXML
+    private void handleSiguientePaciente() {
+        Cita siguiente = listaCitas.stream()
+                .filter(c -> c.getEstado() == EstadoCita.PENDIENTE || c.getEstado() == EstadoCita.CONFIRMADA)
+                .filter(c -> c.getFecha().equals(LocalDate.now()))
+                .min(Comparator.comparing(Cita::getHoraInicio))
+                .orElse(null);
+
+        if (siguiente == null) {
+            mostrarError(lblMensaje, "No hay pacientes pendientes o confirmados para hoy.");
+            return;
+        }
+
+        tablaAgenda.getSelectionModel().select(siguiente);
+        tablaAgenda.scrollTo(siguiente);
+        mostrarDialogoConsulta(siguiente);
+    }
+
+    @FXML
+    private void handleVerHistorial() {
+        Cita sel = tablaAgenda.getSelectionModel().getSelectedItem();
+        if (sel == null) {
+            mostrarError(lblMensaje, "Selecciona una cita para ver el historial.");
+            return;
+        }
+
+        List<HistorialClinico> historial = historialDAO.obtenerPorPacienteId(sel.getPaciente().getId());
+        if (historial.isEmpty()) {
+            mostrarError(lblMensaje, "El paciente no tiene consultas previas.");
+            return;
+        }
+
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Historial Clinico");
+        dialog.setHeaderText("Historial de " + sel.getPaciente().getNombre() + " " + sel.getPaciente().getApellido());
+
+        ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().add(btnCerrar);
+        ViewManager.styleDialog(dialog);
+
+        TableView<HistorialClinico> tablaHistorial = new TableView<>();
+        tablaHistorial.setPrefHeight(300);
+
+        TableColumn<HistorialClinico, String> colFecha = new TableColumn<>("Fecha");
+        colFecha.setPrefWidth(100);
+        colFecha.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getFechaConsulta().toString()));
+
+        TableColumn<HistorialClinico, String> colDiagnostico = new TableColumn<>("Diagnostico");
+        colDiagnostico.setPrefWidth(200);
+        colDiagnostico.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getDiagnostico()));
+
+        TableColumn<HistorialClinico, String> colReceta = new TableColumn<>("Receta");
+        colReceta.setPrefWidth(200);
+        colReceta.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getReceta()));
+
+        TableColumn<HistorialClinico, String> colNotas = new TableColumn<>("Notas");
+        colNotas.setPrefWidth(200);
+        colNotas.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNotas()));
+
+        tablaHistorial.getColumns().addAll(List.of(colFecha, colDiagnostico, colReceta, colNotas));
+        tablaHistorial.setItems(FXCollections.observableArrayList(historial));
+
+        dialog.getDialogPane().setContent(tablaHistorial);
+        dialog.showAndWait();
+    }
+
+    @FXML
     private void handleGestionarHorarios() {
         Medico medico = (Medico) Session.getUsuarioActual();
 
@@ -484,11 +551,14 @@ public class DashboardMedicoController {
             mostrarError(lblMensaje, "Solo se puede iniciar consulta en citas pendientes o confirmadas.");
             return;
         }
+        mostrarDialogoConsulta(sel);
+    }
 
+    private void mostrarDialogoConsulta(Cita cita) {
         Dialog<HistorialClinico> dialog = new Dialog<>();
         dialog.setTitle("Historial Clinico");
-        dialog.setHeaderText("Consulta de " + sel.getPaciente().getNombre() + " " + sel.getPaciente().getApellido()
-                + " - " + sel.getServicio().getNombre());
+        dialog.setHeaderText("Consulta de " + cita.getPaciente().getNombre() + " " + cita.getPaciente().getApellido()
+                + " - " + cita.getServicio().getNombre());
 
         ButtonType btnGuardar = new ButtonType("Guardar y finalizar consulta", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, ButtonType.CANCEL);
@@ -539,9 +609,9 @@ public class DashboardMedicoController {
                 }
                 return new HistorialClinico(
                         UUID.randomUUID().toString().substring(0, 8),
-                        sel.getId(),
-                        sel.getMedico().getId(),
-                        sel.getPaciente().getId(),
+                        cita.getId(),
+                        cita.getMedico().getId(),
+                        cita.getPaciente().getId(),
                         LocalDate.now(),
                         diagnostico,
                         txtEnfermedadActual.getText().trim(),
@@ -556,7 +626,7 @@ public class DashboardMedicoController {
         dialog.showAndWait().ifPresent(historial -> {
             try {
                 historialDAO.guardar(historial);
-                citaService.completarCita(sel.getId());
+                citaService.completarCita(cita.getId());
                 mostrarExito(lblMensaje, "Consulta finalizada. Historial clinico guardado.");
                 cargarAgenda();
             } catch (IllegalArgumentException | IllegalStateException exception) {
@@ -628,6 +698,14 @@ public class DashboardMedicoController {
                 String emailValMed = email.getText().trim().toLowerCase();
                 String errEmailMed = ValidacionService.mensajeErrorEmail(emailValMed);
                 if (errEmailMed != null) { mostrarError(lblMensaje, errEmailMed); return null; }
+
+                String telVal = telefono.getText().trim();
+                String errTel = ValidacionService.mensajeErrorTelefono(telVal);
+                if (errTel != null) { mostrarError(lblMensaje, errTel); return null; }
+
+                String regVal = registro.getText().trim();
+                String errReg = ValidacionService.mensajeErrorRegistroMedico(regVal);
+                if (errReg != null) { mostrarError(lblMensaje, errReg); return null; }
 
                 try {
                     String espNombre = especialidad.getValue();

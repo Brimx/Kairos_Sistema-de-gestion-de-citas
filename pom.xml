@@ -63,6 +63,42 @@
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                <artifactId>launch4j-maven-plugin</artifactId>
+                <version>2.5.1</version>
+                <executions>
+                    <execution>
+                    <phase>verify</phase>
+                    <goals>
+                        <goal>launch4j</goal>
+                    </goals>
+                        <configuration>
+                            <headerType>gui</headerType>
+                            <outfile>${project.basedir}/Kairos.exe</outfile>
+                            <jar>${project.build.directory}/${project.build.finalName}-jar-with-dependencies.jar</jar>
+                            <errTitle>Kairos - Error</errTitle>
+                            <icon>src/main/resources/co/edu/upc/citasmedicas/img/icon.ico</icon>
+                            <jre>
+                                <minVersion>17.0.0</minVersion>
+                                <maxVersion>26.0.0</maxVersion>
+                                <runtimeBits>64</runtimeBits>
+                            </jre>
+                            <versionInfo>
+                                <fileVersion>1.0.0.0</fileVersion>
+                                <txtFileVersion>1.0.0</txtFileVersion>
+                                <fileDescription>Kairos - Sistema de Gestion de Citas</fileDescription>
+                                <copyright>Kairos</copyright>
+                                <productVersion>1.0.0.0</productVersion>
+                                <txtProductVersion>1.0.0</txtProductVersion>
+                                <productName>Kairos</productName>
+                                <internalName>Kairos</internalName>
+                                <originalFilename>Kairos.exe</originalFilename>
+                            </versionInfo>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>3.7.1</version>

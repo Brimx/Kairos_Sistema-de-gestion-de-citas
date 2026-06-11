@@ -21,6 +21,9 @@ public final class ValidacionService {
     private static final Pattern SOLO_DIGITOS =
             Pattern.compile("^\\d+$");
 
+    private static final Pattern REGISTRO_MEDICO =
+            Pattern.compile("^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\\- ]+$");
+
     private ValidacionService() {
     }
 
@@ -88,6 +91,13 @@ public final class ValidacionService {
         if (eps == null || eps.isBlank()) return null;
         if (!SOLO_LETRAS.matcher(eps.trim()).matches())
             return "Solo se permiten letras y espacios";
+        return null;
+    }
+
+    public static String mensajeErrorRegistroMedico(String registro) {
+        if (registro == null || registro.isBlank()) return "El registro medico es obligatorio";
+        if (!REGISTRO_MEDICO.matcher(registro.trim()).matches())
+            return "Solo se permiten letras, numeros y guiones";
         return null;
     }
 }

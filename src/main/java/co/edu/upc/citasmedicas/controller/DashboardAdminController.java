@@ -3,6 +3,7 @@ package co.edu.upc.citasmedicas.controller;
 import co.edu.upc.citasmedicas.dao.AgendaMedicaDAO;
 import co.edu.upc.citasmedicas.dao.BloqueoAgendaDAO;
 import co.edu.upc.citasmedicas.dao.CitaDAO;
+import co.edu.upc.citasmedicas.dao.HistorialClinicoDAO;
 import co.edu.upc.citasmedicas.dao.MedicoDAO;
 import co.edu.upc.citasmedicas.dao.PacienteDAO;
 import co.edu.upc.citasmedicas.model.AgendaMedica;
@@ -13,11 +14,17 @@ import co.edu.upc.citasmedicas.enums.ServicioCita;
 import co.edu.upc.citasmedicas.enums.TipoCita;
 import co.edu.upc.citasmedicas.model.BloqueoAgenda;
 import co.edu.upc.citasmedicas.model.Cita;
+import co.edu.upc.citasmedicas.model.HistorialClinico;
 import co.edu.upc.citasmedicas.model.Medico;
 import co.edu.upc.citasmedicas.model.Paciente;
 import co.edu.upc.citasmedicas.model.Usuario;
 import co.edu.upc.citasmedicas.service.CitaService;
 import co.edu.upc.citasmedicas.service.DisponibilidadService;
+import com.calendarfx.model.Calendar;
+import com.calendarfx.model.Calendar.Style;
+import com.calendarfx.model.CalendarSource;
+import com.calendarfx.model.Entry;
+import com.calendarfx.view.CalendarView;
 import co.edu.upc.citasmedicas.service.InasistenciaService;
 import co.edu.upc.citasmedicas.service.PacienteService;
 import co.edu.upc.citasmedicas.service.Session;
@@ -56,6 +63,8 @@ import javafx.geometry.Insets;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,6 +109,7 @@ public class DashboardAdminController {
     @FXML private Label lblMensaje;
     @FXML private Label lblMensajeMedicos;
     @FXML private Label lblMensajeCitas;
+    @FXML private VBox calendarContainer;
 
     private final PacienteService pacienteService = new PacienteService();
     private final PacienteDAO pacienteDAO = new PacienteDAO();
@@ -109,6 +119,9 @@ public class DashboardAdminController {
     private final AgendaMedicaDAO agendaMedicaDAO = new AgendaMedicaDAO();
     private final BloqueoAgendaDAO bloqueoAgendaDAO = new BloqueoAgendaDAO();
     private final DisponibilidadService disponibilidadService = new DisponibilidadService();
+    private final HistorialClinicoDAO historialDAO = new HistorialClinicoDAO();
+    private CalendarView calendarView;
+    private CalendarSource calendarSource;
 
     private FilteredList<Paciente> filteredPacientes;
     private FilteredList<Medico> filteredMedicos;
@@ -184,6 +197,8 @@ public class DashboardAdminController {
         cargarCitas();
         aplicarColorFilas(tablaCitas);
         iniciarDeteccionInasistencias();
+        inicializarCalendario();
+        cargarCalendario();
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -469,6 +484,54 @@ public class DashboardAdminController {
                 mostrarError(lblMensaje, exception.getMessage());
             }
         });
+    }
+
+    @FXML
+    private void handleVerHistorialPaciente() {
+        Paciente sel = tablaPacientes.getSelectionModel().getSelectedItem();
+        if (sel == null) {
+            mostrarError(lblMensaje, "Selecciona un paciente.");
+            return;
+        }
+
+        List<HistorialClinico> historial = historialDAO.obtenerPorPacienteId(sel.getId());
+        if (historial.isEmpty()) {
+            mostrarError(lblMensaje, "El paciente no tiene consultas previas.");
+            return;
+        }
+
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Historial Clinico");
+        dialog.setHeaderText("Historial de " + sel.getNombre() + " " + sel.getApellido());
+
+        ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().add(btnCerrar);
+        ViewManager.styleDialog(dialog);
+
+        TableView<HistorialClinico> tablaHistorial = new TableView<>();
+        tablaHistorial.setPrefHeight(300);
+
+        TableColumn<HistorialClinico, String> colFecha = new TableColumn<>("Fecha");
+        colFecha.setPrefWidth(100);
+        colFecha.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getFechaConsulta().toString()));
+
+        TableColumn<HistorialClinico, String> colDiagnostico = new TableColumn<>("Diagnostico");
+        colDiagnostico.setPrefWidth(200);
+        colDiagnostico.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getDiagnostico()));
+
+        TableColumn<HistorialClinico, String> colReceta = new TableColumn<>("Receta");
+        colReceta.setPrefWidth(200);
+        colReceta.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getReceta()));
+
+        TableColumn<HistorialClinico, String> colNotas = new TableColumn<>("Notas");
+        colNotas.setPrefWidth(200);
+        colNotas.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNotas()));
+
+        tablaHistorial.getColumns().addAll(List.of(colFecha, colDiagnostico, colReceta, colNotas));
+        tablaHistorial.setItems(FXCollections.observableArrayList(historial));
+
+        dialog.getDialogPane().setContent(tablaHistorial);
+        dialog.showAndWait();
     }
 
     @FXML
@@ -1456,6 +1519,100 @@ public class DashboardAdminController {
         content.getChildren().addAll(cbMedico, tablaHorarios, sep, form, btnRow);
         dialog.getDialogPane().setContent(content);
         dialog.showAndWait();
+    }
+
+    private void inicializarCalendario() {
+        calendarView = new CalendarView();
+
+        Calendar<?> pendientes = new Calendar<>("Pendientes");
+        Calendar<?> confirmadas = new Calendar<>("Confirmadas");
+        Calendar<?> completadas = new Calendar<>("Completadas");
+        Calendar<?> canceladas = new Calendar<>("Canceladas");
+        Calendar<?> bloqueos = new Calendar<>("Bloqueos");
+
+        pendientes.setStyle(Style.STYLE1);
+        confirmadas.setStyle(Style.STYLE2);
+        completadas.setStyle(Style.STYLE3);
+        canceladas.setStyle(Style.STYLE4);
+        bloqueos.setStyle(Style.STYLE5);
+
+        calendarSource = new CalendarSource("Citas del sistema");
+        calendarSource.getCalendars().addAll(pendientes, confirmadas, completadas, canceladas, bloqueos);
+        calendarView.getCalendarSources().setAll(calendarSource);
+
+        calendarView.setRequestedTime(LocalTime.now());
+
+        Thread timeThread = new Thread(() -> {
+            while (true) {
+                Platform.runLater(() -> {
+                    calendarView.setToday(LocalDate.now());
+                    calendarView.setTime(LocalTime.now());
+                });
+                try {
+                    Thread.sleep(10000);
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+        });
+        timeThread.setDaemon(true);
+        timeThread.start();
+
+        calendarView.setPrefHeight(500);
+        calendarContainer.getChildren().add(calendarView);
+    }
+
+    private void cargarCalendario() {
+        try {
+            calendarSource.getCalendars().forEach(cal -> cal.clear());
+
+            Calendar<?> pendientes = calendarSource.getCalendars().get(0);
+            Calendar<?> confirmadas = calendarSource.getCalendars().get(1);
+            Calendar<?> completadas = calendarSource.getCalendars().get(2);
+            Calendar<?> canceladas = calendarSource.getCalendars().get(3);
+            Calendar<?> bloqueos = calendarSource.getCalendars().get(4);
+
+            List<Cita> citas = citaService.todasLasCitas();
+            for (Cita c : citas) {
+                String title = c.getPaciente().getNombre() + " " + c.getPaciente().getApellido()
+                        + " - " + c.getServicio().getNombre()
+                        + (c.isSobrecupo() ? " [SOBRECUPO]" : "");
+                Entry<String> entry = new Entry<>(title);
+                ZonedDateTime inicio = ZonedDateTime.of(c.getFecha(), c.getHoraInicio(), ZoneId.systemDefault());
+                ZonedDateTime fin = ZonedDateTime.of(c.getFecha(), c.getHoraFin(), ZoneId.systemDefault());
+                entry.setInterval(inicio, fin);
+
+                Calendar<?> target = switch (c.getEstado()) {
+                    case CONFIRMADA -> confirmadas;
+                    case COMPLETADA -> completadas;
+                    case CANCELADA -> canceladas;
+                    default -> pendientes;
+                };
+                target.addEntry(entry);
+            }
+
+            MedicoDAO medicoDAO = new MedicoDAO();
+            List<BloqueoAgenda> todosBloqueos = bloqueoAgendaDAO.obtenerTodos();
+            for (BloqueoAgenda b : todosBloqueos) {
+                Medico med = medicoDAO.buscarPorId(b.getMedicoId());
+                String nombreMed = med != null ? "Dr. " + med.getNombre() + " " + med.getApellido() : "Medico desconocido";
+                String title = "\uD83D\uDED1 " + nombreMed + " - " + b.getMotivo();
+                Entry<String> entry = new Entry<>(title);
+
+                if (b.esDiaCompleto()) {
+                    entry.setInterval(ZonedDateTime.of(b.getFecha(), LocalTime.of(0, 0), ZoneId.systemDefault()),
+                            ZonedDateTime.of(b.getFecha(), LocalTime.of(23, 59), ZoneId.systemDefault()));
+                } else {
+                    entry.setInterval(ZonedDateTime.of(b.getFecha(), b.getHoraInicio(), ZoneId.systemDefault()),
+                            ZonedDateTime.of(b.getFecha(), b.getHoraFin(), ZoneId.systemDefault()));
+                }
+                bloqueos.addEntry(entry);
+            }
+
+            Platform.runLater(() -> calendarView.requestLayout());
+        } catch (RuntimeException e) {
+            mostrarError(lblMensaje, "Error al cargar calendario.");
+        }
     }
 
     private boolean confirmar(String mensaje) {

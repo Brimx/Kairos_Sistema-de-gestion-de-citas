@@ -6,4 +6,8 @@ target/
 .project
 .github/
 citasmedicas.db
-docs/
+Kairos/
+Kairos-*.exe
+Kairos.exe
+*.bat
+~$*

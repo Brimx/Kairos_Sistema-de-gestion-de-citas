@@ -50,6 +50,7 @@
                     <HBox spacing="10" alignment="CENTER_LEFT">
                         <Button text="Modificar paciente" onAction="#handleModificarPaciente" styleClass="btn-primary" prefHeight="34"/>
                         <Button text="Desactivar" onAction="#handleDesactivarPaciente" styleClass="btn-danger" prefHeight="34"/>
+                        <Button text="Ver Historial" onAction="#handleVerHistorialPaciente" styleClass="btn-flat" prefHeight="34"/>
                     </HBox>
                     <HBox spacing="10" alignment="CENTER_LEFT">
                         <Button text="+ Nuevo paciente" onAction="#handleNuevoPaciente" styleClass="btn-success" prefHeight="34"/>
@@ -111,6 +112,12 @@
                         <Button text="No Asistio" onAction="#handleNoAsistio" styleClass="btn-danger"/>
                     </HBox>
                     <Label fx:id="lblMensajeCitas" text="" styleClass="feedback-ok"/>
+                </VBox>
+            </Tab>
+
+            <Tab text="Calendario">
+                <VBox fx:id="calendarContainer" spacing="10">
+                    <padding><Insets top="8" right="0" bottom="0" left="0"/></padding>
                 </VBox>
             </Tab>
 

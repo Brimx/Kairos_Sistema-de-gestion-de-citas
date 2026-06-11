@@ -55,8 +55,14 @@
                             </columns>
                         </TableView>
                         <HBox spacing="10">
+                            <Button text="Siguiente Paciente" onAction="#handleSiguientePaciente" styleClass="btn-primary" prefHeight="40"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Button text="Historial" onAction="#handleVerHistorial" styleClass="btn-flat" prefHeight="36"/>
+                            <Button text="Agendar Control" onAction="#handleAgendarControl" styleClass="btn-primary" prefHeight="36"/>
+                        </HBox>
+                        <HBox spacing="10">
                             <Button text="Iniciar Consulta" onAction="#handleIniciarConsulta" styleClass="btn-primary" prefHeight="36"/>
-                            <Button text="Reprogramar" onAction="#handleReprogramarCita" styleClass="btn-ghost" prefHeight="36"/>
+                            <Button text="Reprogramar" onAction="#handleReprogramarCita" styleClass="btn-flat" prefHeight="36"/>
                             <Button text="Atendido" onAction="#handleAtender" styleClass="btn-success" prefHeight="36"/>
                             <Button text="No Asistio" onAction="#handleNoAsistio" styleClass="btn-danger" prefHeight="36"/>
                         </HBox>
